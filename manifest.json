@@ -1,7 +1,7 @@
 {
-  "name": "E-Rank Quest",
-  "short_name": "E-Rank",
-  "description": "12-week transformation: workouts, Indian meals, daily quests, progress log and rest timer.",
+  "name": "Hunter System",
+  "short_name": "Hunter",
+  "description": "E to S rank transformation: 72-week plan, exercise guide, workout log, meals, water and reminders.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
@@ -13,5 +13,8 @@
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Rest timer", "url": "./?view=timer", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

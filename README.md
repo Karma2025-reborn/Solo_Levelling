@@ -1,96 +1,67 @@
-# E-Rank Quest
+# Hunter System v2
 
-A 12-week transformation app (E-Rank → D-Rank) that installs on your phone and works offline.
+A 72-week E → S rank transformation app that installs on your phone and works offline.
 
-- **Today:** the workout for each day of the 12 weeks, an animated figure for every exercise, the day's meals (veg / egg / non-veg) and a daily quest checklist
-- **Progress:** log weight and waist and see the trend graphs
-- **Timer:** rest timer with presets, a set counter, and a beep + vibration when rest ends
-- **Settings:** body weight, plan start date, backup / restore
-
-No accounts and no server. Everything is saved on your phone.
-
----
-
-## 1. Run it on your computer (VS Code)
-
-1. Install **VS Code** from https://code.visualstudio.com
-2. Unzip this folder, then in VS Code choose **File → Open Folder…** and pick `erank-app`.
-3. VS Code will suggest the **Live Server** extension. Click **Install**. Or search "Live Server" by Ritwick Dey in the Extensions panel.
-4. Right-click `index.html` and choose **Open with Live Server**.
-5. The app opens at `http://127.0.0.1:5500`. Any file you save reloads automatically.
-
-> Opening `index.html` by double-clicking works too, but offline mode and install only work when it's served (Live Server or GitHub Pages).
-
-**Test it at phone size:** in Chrome press `F12`, then the phone icon (Toggle device toolbar).
-
-## 2. Put it online for free (GitHub Pages)
-
-1. Create a free account at https://github.com
-2. Click **New repository**, name it `erank-app`, and set it to **Public**.
-3. On the new repo page click **uploading an existing file**, drag in **everything inside** the `erank-app` folder (including `css`, `js` and `icons`), then click **Commit changes**.
-4. Go to **Settings → Pages**. Under *Branch*, choose `main` and `/ (root)`, then **Save**.
-5. Wait 1–2 minutes. Your app is live at `https://<your-username>.github.io/erank-app/`
-
-(Or, with Git installed: open the VS Code terminal and run
-`git init`, `git add .`, `git commit -m "E-Rank v1"`, then follow the push commands GitHub shows.)
-
-## 3. Install on your phone
-
-1. Open your GitHub Pages link in **Chrome** on Android.
-2. Tap the **Install** button in the app's top bar, or **⋮ → Install app / Add to Home screen**.
-3. The E-Rank icon appears on your home screen and opens full-screen, even without internet.
-
-On iPhone: open the link in Safari, then **Share → Add to Home Screen**.
-
-## 4. Updating the app
-
-When you change a file:
-1. Open `sw.js` and bump the version, for example `erank-v1.0.0` → `erank-v1.0.1`.
-2. Upload the changed files to GitHub again.
-3. On the phone, close and reopen the app twice to pick up the new version.
-
-## 5. Your data and backups
-
-- Ticks, test results and the progress log are stored **on your phone only**, in browser storage.
-- Uninstalling the app or clearing Chrome's site data **erases them**.
-- Go to **Settings → Save backup file** every couple of weeks. To move to a new phone, install the app there and use **Restore from file**.
-
-## 6. Where to change things
-
-Everything is in `js/app.js`:
-
-| What | Search for |
+| Tab | What it does |
 |---|---|
-| Workouts per week and day | `function program(` |
-| Exercise names, muscles, form tips | `const EX=` |
-| Meals for each weekday | `const MEALS=` |
-| Diet rules per phase | `const DIETFOCUS=` |
-| Daily step targets | `const STEPS=` |
-| Daily quest list | `function quests(` |
-| Stick-figure animations | `const FIG=` |
+| **Today** | The next thing to do, a water tracker, daily quests (some tick themselves), today's workout, and a full timeline from wake-up to sleep with every meal, water glass and supplement |
+| **Plan** | All 72 weeks across ranks E → D → C → B → A → S. Every exercise has an animated figure. Tap the figure or **How to** for step-by-step instructions, common mistakes, breathing, easier/harder options and your history. Tap **Log sets** to record kg × reps; last session's numbers show in grey so you know what to beat. **Finish workout** ticks the quest and gives 50 XP |
+| **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
+| **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
+| **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
 
-Colours and fonts are at the top of `css/app.css` (`:root { … }`).
+## The path
 
-## Files
+| Rank | Weeks | Focus | Rank test (examples for 72 kg) |
+|---|---|---|---|
+| E → D | 1–12 | Machines → free weights, walking, fix food | 15 push-ups, 60 s plank, 2 km under 18 min, waist −5 cm |
+| D → C | 13–24 | 5 × 5 barbell strength, first pull-up, running | 25 push-ups, 1 pull-up, 3 km under 20 min, squat 0.75× and bench 0.6× body weight for 5 |
+| C → B | 25–40 | Push / pull / legs, V-taper | 40 push-ups, 5 pull-ups, 10 dips, 5 km under 32 min, squat 1×, bench 0.8×, deadlift 1.25× |
+| B → A | 41–56 | Cut phase, reveal the abs | 50 push-ups, 10 pull-ups, 15 dips, 5 km under 28 min, waist ÷ height ≤ 0.48 |
+| A → S | 57–72 | Power, athleticism, full Daily Quest (100/100/100/10 km) | 60 push-ups, 15 pull-ups, 25 dips, 10 km under 60 min, squat 1.5×, bench 1.25×, deadlift 2×, waist ÷ height ≤ 0.45 |
 
-```
-erank-app/
-├── index.html          app layout and tabs
-├── css/app.css         styles
-├── js/app.js           plan data, figures and all app logic
-├── manifest.json       app name, icon and colours for install
-├── sw.js               service worker (offline support)
-├── icons/              app icons (192, 512, maskable)
-└── .vscode/            recommends the Live Server extension
-```
+Your rank only goes up when you **pass the test** in Status → Rank test, not just because the weeks pass. Every 4th week in ranks D–A is a lighter deload week.
 
-## Ideas for v2
+## Reminders
 
-- Progress photos stored on the phone
-- Daily reminder notifications
-- C-Rank plan (months 4–6)
-- Package as a Play Store app with Capacitor
+Phones only let a web app show notifications while it is open or was used recently. So there are three options in **Settings → Reminders**:
+
+1. **Turn on app notifications.** Works while the app is open or in the background for a while.
+2. **Add each reminder to Google Calendar** (most reliable on Android). Tap **Add** next to each one and press **Save**. They repeat daily. In Google Calendar → Settings → your calendar → **Default notifications**, set **At time of event**.
+3. **Download calendar file (.ics).** Imports all reminders at once into Outlook, Samsung Calendar or iPhone Calendar.
+
+## Updating from v1
+
+This is a new app with a new name and new storage. Your v1 (E-Rank Quest) ticks don't carry over. You can keep both installed, or delete the old repo.
+
+## Put it online (same as before)
+
+1. Open your GitHub repo and **delete the old files**, or create a new **public** repo called `hunter`.
+2. Upload **everything inside** this folder (`index.html`, `css`, `js`, `icons`, `manifest.json`, `sw.js`). `index.html` must be at the top level.
+3. **Settings → Pages →** Deploy from a branch, branch `main` or `master`, folder `/ (root)`, Save.
+4. Open `https://<your-username>.github.io/<repo-name>/` in Chrome on your phone, then **⋮ → Install app**.
+
+## Updating the app later
+
+1. Change files in VS Code (test with **Live Server**: right-click `index.html` → Open with Live Server).
+2. In `sw.js` bump `VERSION`, for example `hunter-v2.0.0` → `hunter-v2.0.1`.
+3. Upload the changed files to GitHub. On the phone, close and reopen the app twice.
+
+## Your data
+
+Everything is stored on your phone only. Uninstalling the app or clearing Chrome's site data erases it, so use **Settings → Save backup file** every couple of weeks.
+
+## Where to change things
+
+| What | File |
+|---|---|
+| Workouts for every week and day, rank test targets | `js/program.js` |
+| Exercise instructions, mistakes, tips | `js/exercises.js` |
+| Meals, timeline times, water amounts, diet rules | `js/diet.js` |
+| Stick-figure animations | `js/figures.js` (each figure is pose A ↔ pose B) |
+| Screens, tracking, reminders, timer | `js/app.js` |
+| Colours and fonts | top of `css/app.css` |
 
 ---
 
-Stop training right away if you feel chest pain, dizziness, or breathlessness that doesn't settle within 2–3 minutes. Get a health check (BP, HbA1c, lipid profile, ECG) before starting.
+Stop training right away if you feel chest pain, dizziness, or breathlessness that doesn't settle within 2–3 minutes. Get a health check (BP, HbA1c, lipid profile, ECG) before starting, and always use safety pins or a spotter for heavy barbell work.
