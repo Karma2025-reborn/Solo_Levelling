@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>E-Rank</title>
+<meta name="description" content="12-week transformation plan: workouts, Indian meals, daily quests, progress log and rest timer.">
+<meta name="theme-color" content="#060A13">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="appbar">
+  <div class="rank" aria-label="Current rank"><span id="rank">E</span></div>
+  <div class="appbar-t"><b>E-Rank Quest</b><span id="ranksub">Week 1 of 12</span></div>
+  <button type="button" id="install" class="ghost" hidden>Install</button>
+</header>
+
+<div class="wrap">
+
+  <!-- ================= TODAY ================= -->
+  <section id="v-today" class="view">
+    <section class="win">
+      <div class="sys">[ System ] · Daily quest</div>
+      <div class="status">
+        <div class="stat"><span class="k">Protein target</span><div class="v" id="prot">–</div><span class="cue">1.6–2 g per kg body weight</span></div>
+        <div class="stat"><span class="k">Water</span><div class="v" id="water">–</div><span class="cue">More on gym and hot days</span></div>
+        <div class="stat"><span class="k">Quest progress</span><div class="v" id="xpv">0<small>%</small></div><div class="xp"><i id="xpbar" style="width:0"></i></div></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="phases" id="phases"></div>
+      <div class="weeks" id="weeks" role="group" aria-label="Week"></div>
+    </section>
+
+    <nav class="sticky" aria-label="Day">
+      <div class="days" id="days"></div>
+      <button type="button" id="btn-today" class="todaybtn">Jump to today</button>
+    </nav>
+
+    <main id="day"></main>
+
+    <div class="rules">
+      <section class="win warn">
+        <h3>Stop right away if</h3>
+        <ul>
+          <li>You feel chest pain or tightness</li>
+          <li>You feel dizzy or light-headed</li>
+          <li>Breathlessness doesn't settle within 2–3 minutes</li>
+        </ul>
+        <p class="cue" style="margin-top:10px">Before starting, get BP, blood sugar (HbA1c), a lipid profile and an ECG checked.</p>
+      </section>
+      <section class="win">
+        <h3>Training rules</h3>
+        <ul>
+          <li>Breathe out as you push or pull. Never hold your breath.</li>
+          <li>Pick a weight where the last 2 reps are hard but form stays clean.</li>
+          <li>When all sets feel smooth, add a little weight next session.</li>
+          <li>Missed a day? Continue from the next day. Never miss two in a row.</li>
+        </ul>
+      </section>
+      <section class="win">
+        <h3>Never on the menu</h3>
+        <ul>
+          <li>Sugar in chai or coffee, cold drinks, packaged juice</li>
+          <li>Samosa, vada pav, bhaji, namkeen, biscuits</li>
+          <li>Mithai and bakery items, except the one weekly treat from week 9</li>
+          <li>Alcohol. It goes straight to the belly.</li>
+        </ul>
+      </section>
+    </div>
+  </section>
+
+  <!-- ================= PROGRESS ================= -->
+  <section id="v-progress" class="view" hidden>
+    <section class="win">
+      <div class="sys">[ System ] · Status log</div>
+      <h2 class="vh">Progress</h2>
+      <form id="log-form" class="logform">
+        <label for="log-date">Date<input id="log-date" type="date" required></label>
+        <label for="log-wt">Weight (kg)<input id="log-wt" type="number" step="0.1" min="30" max="250" inputmode="decimal" placeholder="72.4"></label>
+        <label for="log-waist">Waist at navel (cm)<input id="log-waist" type="number" step="0.5" min="40" max="200" inputmode="decimal" placeholder="94"></label>
+        <button type="submit" class="primary">Save entry</button>
+      </form>
+      <p id="log-msg" class="cue" role="status"></p>
+    </section>
+    <section class="win chartbox" id="chart-waist"></section>
+    <section class="win chartbox" id="chart-wt"></section>
+    <section class="win">
+      <h3 class="sub">All entries</h3>
+      <div class="tablewrap"><table class="logt"><thead><tr><th>Date</th><th>kg</th><th>Waist cm</th><th><span class="sr">Delete</span></th></tr></thead><tbody id="log-list"></tbody></table></div>
+      <p class="cue">Measure once a week, same day, in the morning before eating. The waist number matters more than the scale.</p>
+    </section>
+  </section>
+
+  <!-- ================= TIMER ================= -->
+  <section id="v-timer" class="view" hidden>
+    <section class="win timer">
+      <div class="sys">[ System ] · Rest timer</div>
+      <div class="ring">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <circle cx="100" cy="100" r="88" class="ring-bg"/>
+          <circle cx="100" cy="100" r="88" class="ring-fg" id="t-ring" transform="rotate(-90 100 100)"/>
+        </svg>
+        <div class="ring-c"><div id="t-time" class="t-time" role="timer" aria-live="off">1:30</div><div id="t-done" class="t-done" hidden>Next set</div></div>
+      </div>
+      <div class="seg center" id="t-presets">
+        <button type="button" data-s="45">0:45</button><button type="button" data-s="60">1:00</button><button type="button" data-s="90">1:30</button><button type="button" data-s="120">2:00</button><button type="button" data-s="180">3:00</button>
+      </div>
+      <div class="t-actions">
+        <button type="button" id="t-start" class="primary big">Start rest</button>
+        <button type="button" id="t-reset" class="ghost">Reset</button>
+      </div>
+      <button type="button" id="t-setdone" class="setdone">Set done → start rest</button>
+      <div class="setcount">
+        <button type="button" id="t-minus" class="ghost" aria-label="One less set">−</button>
+        <div><span class="k">Sets done</span><b id="t-sets">0</b></div>
+        <button type="button" id="t-plus" class="ghost" aria-label="One more set">+</button>
+      </div>
+      <p class="cue center">The phone beeps and vibrates when rest is over. Keep the app open on screen.</p>
+    </section>
+  </section>
+
+  <!-- ================= SETTINGS ================= -->
+  <section id="v-settings" class="view" hidden>
+    <section class="win">
+      <div class="sys">[ System ] · Player settings</div>
+      <h2 class="vh">Settings</h2>
+      <div class="formgrid">
+        <label for="wt">Body weight (kg)<input id="wt" type="number" min="35" max="200" step="0.1" inputmode="decimal"><span class="cue">Sets your protein and water targets. Saving a weight in Progress updates this too.</span></label>
+        <label for="start">Plan start date<input id="start" type="date"><span class="cue">Snaps to that week's Monday. The app uses it to open on today's workout.</span></label>
+      </div>
+    </section>
+    <section class="win">
+      <h3 class="sub">Backup</h3>
+      <p class="cue">Your data lives only on this phone. Save a backup every couple of weeks, and use it to move to a new phone.</p>
+      <div class="t-actions left">
+        <button type="button" id="export" class="primary">Save backup file</button>
+        <label class="ghost filebtn" for="import">Restore from file<input id="import" type="file" accept="application/json,.json"></label>
+      </div>
+      <p id="backup-msg" class="cue" role="status"></p>
+    </section>
+    <section class="win warn">
+      <h3 class="sub">Danger zone</h3>
+      <button type="button" id="reset" class="danger">Erase all progress</button>
+    </section>
+    <p class="cue center">E-Rank Quest · v1.0 · works offline once installed</p>
+  </section>
+</div>
+
+<nav class="tabbar" aria-label="App sections">
+  <button type="button" id="tab-today"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Today</button>
+  <button type="button" id="tab-progress"><svg viewBox="0 0 24 24"><path d="M4 18l5-6 4 3 7-9"/></svg>Progress</button>
+  <button type="button" id="tab-timer"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>Timer</button>
+  <button type="button" id="tab-settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>Settings</button>
+</nav>
+
+<script src="js/app.js"></script>
+</body>
+</html>
