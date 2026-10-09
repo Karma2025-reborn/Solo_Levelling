@@ -1,4 +1,4 @@
-# Hunter System v2
+# Hunter System v2.2
 
 A 72-week E → S rank transformation app that installs on your phone and works offline.
 
@@ -6,6 +6,8 @@ A 72-week E → S rank transformation app that installs on your phone and works 
 |---|---|
 | **Today** | The next thing to do, a water tracker, daily quests (some tick themselves), today's workout, and a full timeline from wake-up to sleep with every meal, water glass and supplement |
 | **Plan** | All 72 weeks across ranks E → D → C → B → A → S. Every exercise has an animated figure. Tap the figure or **How to** for step-by-step instructions, common mistakes, breathing, easier/harder options and your history. Tap **Log sets** to record kg × reps; last session's numbers show in grey so you know what to beat. **Finish workout** ticks the quest and gives 50 XP |
+| **Food** | Type what you actually ate ("3 roti, 1 bowl dal, 2 chai with sugar") or search 140+ Indian foods. Shows calories, protein, carbs, fat and fibre against targets calculated from your age, height, weight and current rank, plus a System analysis of what's causing the surplus (sugar, fried food, low protein, biggest calorie sources) and a 7-day calorie chart. Add your own foods from nutrition labels |
+| **Status window** (top of Status) | Power level and six stats scored 0–100 from your real logs: **STR** (push-ups, pull-ups, lift maxes ÷ body weight, lift progress), **AGI** (run pace, burpees), **VIT** (plank, resting heart rate, workouts done), **PHY** (waist ÷ height), **FUEL** (protein, calorie target, clean days), **DIS** (daily quests). Radar chart now vs 4 weeks ago, trend arrows and 8-week sparklines. A short summary also shows on Today. Do the 15-minute **Stat check** every 2 weeks to keep it accurate |
 | **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
 | **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
 | **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
@@ -58,6 +60,7 @@ Everything is stored on your phone only. Uninstalling the app or clearing Chrome
 | Workouts for every week and day, rank test targets | `js/program.js` |
 | Exercise instructions, mistakes, tips | `js/exercises.js` |
 | Meals, timeline times, water amounts, diet rules | `js/diet.js` |
+| Food database (calories and macros per serving) | `js/foods.js` |
 | Stick-figure animations | `js/figures.js` (each figure is pose A ↔ pose B) |
 | Screens, tracking, reminders, timer | `js/app.js` |
 | Colours and fonts | top of `css/app.css` |

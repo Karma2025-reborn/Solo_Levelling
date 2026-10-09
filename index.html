@@ -49,6 +49,8 @@
     <div class="quests" id="quests"></div>
   </section>
 
+  <section class="win" id="mini-dash"></section>
+
   <section class="win" id="today-workout"></section>
 
   <section class="win">
@@ -70,8 +72,68 @@
   <main id="day"></main>
 </section>
 
+<!-- ======================= FOOD ======================= -->
+<section id="v-food" class="view" hidden>
+  <section class="win">
+    <div class="datenav"><button type="button" class="ghost small" id="food-prev" aria-label="Previous day">‹</button><div class="sys" id="food-date">Today</div><button type="button" class="ghost small" id="food-next" aria-label="Next day">›</button></div>
+    <div id="food-sum" class="foodsum"></div>
+  </section>
+  <section class="win">
+    <h3 class="sub">What did you eat?</h3>
+    <div class="seg" id="food-meal" role="group" aria-label="Meal"></div>
+    <label for="food-text" class="sr">Describe what you ate</label>
+    <textarea id="food-text" rows="3" placeholder="e.g. 3 roti, 1 bowl dal, bhindi, salad, 2 chai with sugar"></textarea>
+    <div class="t-actions left"><button type="button" class="primary" id="food-parse">Add to log</button><button type="button" class="ghost" id="food-copy">Copy previous day</button></div>
+    <p class="cue" id="food-parse-msg" role="status">Write it the way you'd say it. Quantities like "2", "half", "150 g", "big bowl" are understood.</p>
+    <label for="food-q" class="sr">Search foods</label>
+    <input id="food-q" class="search" type="search" placeholder="Search 140+ Indian foods…" autocomplete="off">
+    <p class="k" id="food-res-h" style="margin:10px 0 4px"></p>
+    <ul class="foodres" id="food-res"></ul>
+  </section>
+  <section class="win">
+    <h3 class="sub">System analysis</h3>
+    <ul class="ins" id="food-ins"></ul>
+  </section>
+  <section class="win">
+    <h3 class="sub">Food log</h3>
+    <div id="food-log"></div>
+  </section>
+  <section class="win chartbox" id="food-week"></section>
+  <section class="win">
+    <details><summary><h3 class="sub" style="display:inline">Add a custom food</h3></summary>
+      <p class="cue">For packaged food, copy the numbers from the nutrition label for one serving.</p>
+      <form id="cf-form" class="logform">
+        <label for="cf-n">Name<input id="cf-n" required placeholder="Mom's methi thepla"></label>
+        <label for="cf-u">Serving<input id="cf-u" placeholder="1 piece"></label>
+        <label for="cf-kcal">Calories<input id="cf-kcal" type="number" step="1" inputmode="numeric" required></label>
+        <label for="cf-p">Protein g<input id="cf-p" type="number" step="0.1" inputmode="decimal"></label>
+        <label for="cf-c">Carbs g<input id="cf-c" type="number" step="0.1" inputmode="decimal"></label>
+        <label for="cf-f">Fat g<input id="cf-f" type="number" step="0.1" inputmode="decimal"></label>
+        <label for="cf-fi">Fibre g<input id="cf-fi" type="number" step="0.1" inputmode="decimal"></label>
+        <button type="submit" class="primary">Save and add</button>
+      </form><p class="cue" id="cf-msg" role="status"></p>
+    </details>
+    <p class="cue" style="margin-top:10px">Values are home-cooking estimates. Restaurant and hotel food is usually 20–50% higher because of oil and butter.</p>
+  </section>
+</section>
+
 <!-- ======================= STATUS ======================= -->
 <section id="v-status" class="view" hidden>
+  <section class="win dash" id="dash"></section>
+  <section class="win">
+    <details><summary><h3 class="sub" style="display:inline">Stat check (every 2 weeks, 15 min)</h3></summary>
+    <p class="cue">Do these fresh, before a workout, 3 min rest between each. Fill in only what you did. Resting heart rate: count your pulse for 30 s right after waking, then double it.</p>
+    <form id="check-form" class="logform">
+      <label for="check-date">Date<input id="check-date" type="date" required></label>
+      <label for="ck-push">Push-ups, one set<input id="ck-push" type="number" inputmode="numeric" min="0" step="1"></label>
+      <label for="ck-pull">Pull-ups (0 if none)<input id="ck-pull" type="number" inputmode="numeric" min="0" step="1"></label>
+      <label for="ck-plank">Plank hold (s)<input id="ck-plank" type="number" inputmode="numeric" min="0" step="1"></label>
+      <label for="ck-burpee">Burpees in 1 min<input id="ck-burpee" type="number" inputmode="numeric" min="0" step="1"></label>
+      <label for="ck-run">2 km walk/run (min)<input id="ck-run" type="number" inputmode="decimal" min="0" step="0.1"></label>
+      <label for="ck-rhr">Resting heart rate (bpm)<input id="ck-rhr" type="number" inputmode="numeric" min="30" max="130" step="1"></label>
+      <button type="submit" class="primary">Save stat check</button>
+    </form><p class="cue" id="check-msg" role="status"></p></details>
+  </section>
   <section class="win rankcard" id="rankcard"></section>
   <section class="win">
     <h3 class="sub">Hunter stats</h3>
@@ -138,6 +200,7 @@
     <div class="sys">[ System ] · Hunter profile</div>
     <h2 class="vh">Settings</h2>
     <div class="formgrid">
+      <label for="s-age">Age (years)<input id="s-age" type="number" min="15" max="90" step="1" inputmode="numeric" placeholder="e.g. 34"><span class="cue">Needed to calculate your calorie target.</span></label>
       <label for="s-wt">Body weight (kg)<input id="s-wt" type="number" min="35" max="200" step="0.1" inputmode="decimal"><span class="cue">Sets protein, water and strength targets.</span></label>
       <label for="s-ht">Height (cm)<input id="s-ht" type="number" min="120" max="220" step="1" inputmode="numeric"><span class="cue">Used for waist ÷ height, the best belly-fat measure.</span></label>
       <label for="s-start">Plan start date<input id="s-start" type="date"><span class="cue">Snaps to that week's Monday.</span></label>
@@ -178,7 +241,7 @@
     </ul>
     <button type="button" id="reset" class="danger" style="margin-top:12px">Erase all progress</button>
   </section>
-  <p class="cue center">Hunter System · v2.0 · works offline once installed</p>
+  <p class="cue center">Hunter System · v2.2 · works offline once installed</p>
 </section>
 </div>
 
@@ -202,6 +265,7 @@
 <nav class="tabbar" aria-label="App sections">
   <button type="button" id="tab-today"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Today</button>
   <button type="button" id="tab-plan"><svg viewBox="0 0 24 24"><path d="M6 4v16M18 4v16M3 9h6M15 9h6M3 15h6M15 15h6M9 12h6"/></svg>Plan</button>
+  <button type="button" id="tab-food"><svg viewBox="0 0 24 24"><path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v6M9 3v6M17 21V3c-2.5 1-4 4-4 8h4"/></svg>Food</button>
   <button type="button" id="tab-status"><svg viewBox="0 0 24 24"><path d="M4 18l5-6 4 3 7-9"/></svg>Status</button>
   <button type="button" id="tab-timer"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>Timer</button>
   <button type="button" id="tab-settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>Settings</button>
@@ -211,6 +275,7 @@
 <script src="js/exercises.js"></script>
 <script src="js/program.js"></script>
 <script src="js/diet.js"></script>
+<script src="js/foods.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

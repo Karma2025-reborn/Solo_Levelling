@@ -1,7 +1,7 @@
 /* Hunter System service worker: makes the app work offline.
    After changing any file, bump VERSION so phones fetch the new copy. */
-const VERSION = 'hunter-v2.0.0';
-const SHELL = ['./', 'index.html', 'css/app.css', 'js/figures.js', 'js/exercises.js', 'js/program.js', 'js/diet.js', 'js/app.js', 'manifest.json',
+const VERSION = 'hunter-v2.2.1';
+const SHELL = ['./', 'index.html', 'css/app.css', 'js/figures.js', 'js/exercises.js', 'js/program.js', 'js/diet.js', 'js/foods.js', 'js/app.js', 'manifest.json',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png'];
 
 self.addEventListener('install', e => {
