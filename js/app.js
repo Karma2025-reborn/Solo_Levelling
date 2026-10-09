@@ -56,7 +56,7 @@ function hasData(ds){return localStorage.getItem(P+dayKey(ds))!==null}
 
 /* ---------- XP / level / streak ---------- */
 function allDays(){const out=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(P+'day:'))out.push(k.slice((P+'day:').length))}}catch(e){}return out.sort()}
-function xpTotal(){let xp=0;for(const ds of allDays()){const q=questsFor(ds);xp+=q.filter(x=>x.done).length*15;if(getDay(ds).workout)xp+=50}
+function xpTotal(){let xp=0;for(const ds of allDays()){const q=questsFor(ds);xp+=q.filter(x=>x.done).length*15;if(getDay(ds).workout)xp+=50;try{xp+=mindQuests(ds).filter(x=>x.done).length*10+wealthQuests(ds).filter(x=>x.done).length*10}catch(e){}}
   xp+=S.get('tests',[]).filter(t=>t.passed).length*500;return xp}
 function streak(){let n=0,d=new Date();if(dayScore(ymd(d))<0.8)d=addDays(d,-1);while(dayScore(ymd(d))>=0.8&&n<1000){n++;d=addDays(d,-1)}return n}
 
@@ -121,6 +121,7 @@ function renderToday(){
   $('diet-rules').innerHTML=`<h3 class="sub">${st.rank}-Rank diet rules</h3><ul class="plain">${Diet.rulesFor(st.rank,p.w).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
    <p class="cue">Portions: 1 phulka is palm-sized without ghee. 1 cup cooked rice is a fist. 1 bowl dal is about 200 ml. 2–3 tsp oil per person per day in total.</p>`;
   renderMiniDash();
+  renderSystems();
   header();
 }
 document.addEventListener('change',e=>{
@@ -672,17 +673,244 @@ $('check-form').addEventListener('submit',e=>{e.preventDefault();
   $('check-form').reset();$('check-date').value=todayStr();$('check-msg').textContent=`Stat check saved for ${c.date}. Repeat it every 2 weeks.`;renderStatus();
 });
 
+
+/* =================================================================
+   MIND (INT) SYSTEM
+   ================================================================= */
+const inr=n=>{if(n==null||isNaN(n))return '–';const a=Math.abs(n),s=n<0?'−':'';if(a>=1e7)return `${s}₹${(a/1e7).toFixed(a>=1e9?0:2)} Cr`;if(a>=1e5)return `${s}₹${(a/1e5).toFixed(2)} L`;return `${s}₹${Math.round(a).toLocaleString('en-IN')}`};
+const mon=d=>d.slice(0,7);
+function focusLog(){return S.get('focus',[])}
+function deepMin(ds){return focusLog().filter(f=>f.date===ds).reduce((a,f)=>a+f.min,0)}
+function books(){return S.get('books',[])}
+function pagesOn(ds){return S.get('read:'+ds,0)}
+function notes(){return S.get('notes',[])}
+function lessonsDone(){return S.get('lessonsDone',{})}
+function mindTotals(){
+  return {books:books().filter(b=>b.done).length,deep:Math.floor(focusLog().reduce((a,f)=>a+f.min,0)/60),lessons:Object.keys(lessonsDone()).length,notes:notes().length,courses:S.get('courses',[]).length,teach:S.get('teach',0)};
+}
+function mindRankIdx(){const t=mindTotals();let i=0;while(i<Mind.RANKS.length&&Object.entries(Mind.RANKS[i].req).every(([k,v])=>t[k]>=v))i++;return i}
+function lessonWeek(){return Math.max(0,Math.min(51,Math.floor(Math.max(0,posOf(new Date()).days)/7)))}
+function mindQuests(ds){
+  const r=getDay(ds),mq=r.mq||{};
+  const ld=Object.values(lessonsDone()).includes(ds);
+  return [
+    {id:'read',t:'Read 20 pages',s:`${pagesOn(ds)} pages today`,auto:true,done:pagesOn(ds)>=20},
+    {id:'deep',t:'90 min deep work, phone away',s:`${deepMin(ds)} min logged in the focus timer`,auto:true,done:deepMin(ds)>=90},
+    {id:'skill',t:'30 min on a skill track',s:'Leadership, AI, business or technical',done:!!mq.skill},
+    {id:'money',t:'Money lesson (10 min)',s:ld?'Lesson completed today':'Read this week\'s lesson and do its action',done:ld||!!mq.money},
+    {id:'note',t:'Write 1 insight',s:'What did you learn today?',auto:true,done:notes().some(n=>n.date===ds)},
+    {id:'nophone',t:'No phone for the first hour after waking',s:'Tick it honestly',done:!!mq.nophone}
+  ];
+}
+function questHTML(list,attr){return list.map(q=>`<label class="q${q.auto?' auto':''}"><input type="checkbox" ${attr}="${q.id}" ${q.done?'checked':''} ${q.auto?'disabled':''}><span>${esc(q.t)}<small>${esc(q.s)}${q.auto?' · ticks itself':''}</small></span></label>`).join('')}
+
+let fTotal=S.get('focusLen',50)*60,fLeft=fTotal,fEnd=0,fRun=false,fInt=null,fStart=0;
+function renderMind(){
+  const t=mindTotals(),ri=mindRankIdx(),rk=Mind.RANKS[Math.min(ri,Mind.RANKS.length-1)],letter=ri>=Mind.RANKS.length?'S':Mind.RANKS[ri].r;
+  const prev=S.get('mrank','E');if(RANKS.indexOf(letter)>RANKS.indexOf(prev)){S.set('mrank',letter);showRankUp(letter,'Mind')}
+  const next=ri<Mind.RANKS.length?Mind.RANKS[ri]:null;
+  $('mind-hero').innerHTML=`<div class="sys">[ System ] · INT window</div><div class="rc"><div class="rank xl"><span>${letter}</span></div><div><b class="big-t">${next?esc(next.name):'S-Rank · Sage of the System'}</b><span class="cue">${next?esc(next.goal):'Maximum INT. Keep teaching.'}</span></div></div>
+   ${next?`<div class="reqbars">${Object.entries(next.req).filter(([,v])=>v>0).map(([k,v])=>bar(Mind.REQLABEL[k],Math.min(t[k],v),v,'','var(--stretch)')+`<span class="cue tot">${t[k]} total</span>`).join('')}</div><p class="cue">Reach every target to rank up to ${next.to}-Rank automatically.</p>`:''}`;
+  $('mind-quests').innerHTML=questHTML(mindQuests(todayStr()),'data-mq');
+  // focus
+  drawFocus();
+  const wk=[...Array(7)].map((_,i)=>deepMin(ymd(addDays(new Date(),-i)))).reduce((a,b)=>a+b,0);
+  $('focus-stats').innerHTML=`<span><b>${deepMin(todayStr())}</b> min today</span><span><b>${(wk/60).toFixed(1)}</b> h this week</span><span><b>${t.deep}</b> h total</span>`;
+  // books
+  const bs=books();
+  $('book-list').innerHTML=bs.filter(b=>!b.done).map(b=>`<div class="book"><div class="bk-t"><b>${esc(b.title)}</b><span>${esc(b.author||'')} · ${b.read} / ${b.pages} pages</span></div>
+     <div class="mtrack"><i style="width:${Math.min(100,b.read/b.pages*100)}%;background:var(--stretch)"></i></div>
+     <div class="t-actions left"><button type="button" class="ghost small" data-pg="${b.id}" data-n="10">+10 pages</button><button type="button" class="ghost small" data-pg="${b.id}" data-n="20">+20</button><button type="button" class="ghost small" data-pg="${b.id}" data-n="-10" aria-label="Remove 10 pages">−10</button><button type="button" class="primary small" data-bdone="${b.id}">Finished</button></div></div>`).join('')||'<p class="cue">No book in progress. Add one from the library below.</p>';
+  const done=bs.filter(b=>b.done);
+  $('book-done').innerHTML=done.length?`<p class="k">Finished · ${done.length}</p><ul class="plain">${done.slice().reverse().map(b=>`<li>${esc(b.title)} <span class="cue">· ${b.doneDate}</span></li>`).join('')}</ul>`:'';
+  const have=new Set(bs.map(b=>b.title));
+  const cats=[...new Set(Mind.LIBRARY.map(x=>x[0]))];
+  $('library').innerHTML=cats.map(c=>`<p class="k" style="margin:12px 0 6px">${esc(c)}</p><ul class="foodres">${Mind.LIBRARY.filter(x=>x[0]===c).map(([,ti,au,pg])=>`<li><button type="button" data-lib="${esc(ti)}" ${have.has(ti)?'disabled':''}><span><b>${esc(ti)}</b><small>${esc(au)} · ~${pg} pages</small></span><em>${have.has(ti)?'✓':'+'}</em></button></li>`).join('')}</ul>`).join('');
+  // lesson
+  const lw=lessonWeek(),L=Mind.LESSONS[lw],ld=lessonsDone();
+  $('lesson').innerHTML=`<div class="sys">Week ${lw+1} of 52 · Money lesson</div><h3 class="big-t">${esc(L[0])}</h3><p>${esc(L[1])}</p><p class="note">Action: ${esc(L[2])}</p>
+   <button type="button" class="${ld[lw]?'ghost':'primary'}" data-lesson="${lw}">${ld[lw]?'Done ✓':'Mark lesson done'}</button>
+   <details style="margin-top:12px"><summary><span class="k">All 52 lessons · ${Object.keys(ld).length} done</span></summary><ol class="lessons">${Mind.LESSONS.map((x,i)=>`<li class="${ld[i]?'ok':''}${i===lw?' cur':''}"><button type="button" class="link" data-lsn="${i}">${esc(x[0])}</button></li>`).join('')}</ol><div id="lesson-peek"></div></details>`;
+  // skills
+  const sk=S.get('skills',{});
+  $('skills').innerHTML=Mind.SKILLS.map(s=>{const d=sk[s.k]||{},n=Object.values(d).filter(Boolean).length;
+    return `<details class="skill"${n<s.steps.length&&n>0?' open':''}><summary><b>${esc(s.n)}</b><span class="cue">${n} / ${s.steps.length}</span><div class="mtrack"><i style="width:${n/s.steps.length*100}%;background:var(--stretch)"></i></div></summary>
+     <div class="steps-ck">${s.steps.map((st,i)=>`<label class="q"><input type="checkbox" data-sk="${s.k}" data-i="${i}" ${d[i]?'checked':''}><span>${esc(st)}</span></label>`).join('')}</div></details>`}).join('');
+  // notes
+  const ns=notes();
+  $('note-list').innerHTML=ns.slice(-8).reverse().map(n=>`<li><span class="cue">${n.date}</span> ${esc(n.text)}</li>`).join('')||'<li class="cue">No insights yet. One sentence a day adds up to 365 ideas a year.</li>';
+  $('note-count').textContent=`${ns.length} insights written`;
+  // courses & teaching
+  const cs=S.get('courses',[]);
+  $('course-list').innerHTML=cs.map(c=>`<li>${esc(c.name)} <span class="cue">· ${c.date}</span></li>`).join('')||'<li class="cue">None yet.</li>';
+  $('teach-n').textContent=S.get('teach',0);
+}
+function drawFocus(){
+  $('f-time').textContent=fmt(fLeft);$('f-ring').style.strokeDashoffset=(1-(fTotal?fLeft/fTotal:0))*part;
+  $('f-start').textContent=fRun?'Pause':(fLeft<fTotal&&fLeft>0?'Resume':'Start focus');
+  document.querySelectorAll('#f-presets button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.m*60===fTotal));
+}
+function logFocus(min){if(min<5)return;const a=focusLog();a.push({date:todayStr(),min:Math.round(min),label:($('f-label').value||'').trim()});S.set('focus',a);toast(`${Math.round(min)} min of deep work logged`)}
+function fTick(){fLeft=(fEnd-Date.now())/1000;if(fLeft<=0){fLeft=0;fRun=false;clearInterval(fInt);beep();navigator.vibrate&&navigator.vibrate([400,150,400]);logFocus(fTotal/60);fLeft=fTotal;wake(false);renderMind();refreshAll()}drawFocus()}
+$('f-ring').style.strokeDasharray=part;
+$('f-start').onclick=()=>{audio();if(fRun){fRun=false;clearInterval(fInt);wake(false)}else{fEnd=Date.now()+fLeft*1000;fRun=true;clearInterval(fInt);fInt=setInterval(fTick,500);wake(true)}drawFocus()};
+$('f-stop').onclick=()=>{if(fLeft<fTotal){const done=(fTotal-fLeft)/60;fRun=false;clearInterval(fInt);wake(false);logFocus(done);fLeft=fTotal;renderMind();refreshAll()}drawFocus()};
+$('f-presets').onclick=e=>{const b=e.target.closest('button');if(!b||fRun)return;fTotal=+b.dataset.m*60;S.set('focusLen',+b.dataset.m);fLeft=fTotal;drawFocus()};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&fRun)fTick()});
+$('v-mind').addEventListener('click',e=>{
+  const pg=e.target.closest('[data-pg]');if(pg){const a=books(),b=a.find(x=>x.id===pg.dataset.pg),n=+pg.dataset.n;if(b){const before=b.read;b.read=Math.max(0,Math.min(b.pages,b.read+n));S.set('books',a);S.set('read:'+todayStr(),Math.max(0,pagesOn(todayStr())+(b.read-before)));renderMind();refreshAll()}return}
+  const bd=e.target.closest('[data-bdone]');if(bd){const a=books(),b=a.find(x=>x.id===bd.dataset.bdone);if(b){b.done=true;b.doneDate=todayStr();b.read=b.pages;S.set('books',a);toast(`Finished "${b.title}". +1 book`);renderMind()}return}
+  const lib=e.target.closest('[data-lib]');if(lib){const L=Mind.LIBRARY.find(x=>x[1]===lib.dataset.lib);const a=books();a.push({id:Date.now().toString(36),title:L[1],author:L[2],pages:L[3],read:0,done:false});S.set('books',a);toast(`Added "${L[1]}"`);renderMind();return}
+  const ls=e.target.closest('[data-lesson]');if(ls){const d=lessonsDone(),i=ls.dataset.lesson;if(d[i])delete d[i];else d[i]=todayStr();S.set('lessonsDone',d);renderMind();refreshAll();return}
+  const pk=e.target.closest('[data-lsn]');if(pk){const i=+pk.dataset.lsn,L=Mind.LESSONS[i],d=lessonsDone();$('lesson-peek').innerHTML=`<div class="win" style="margin-top:8px"><b>${i+1}. ${esc(L[0])}</b><p>${esc(L[1])}</p><p class="note">Action: ${esc(L[2])}</p><button type="button" class="${d[i]?'ghost':'primary'} small" data-lesson="${i}">${d[i]?'Done ✓':'Mark done'}</button></div>`;return}
+});
+$('v-mind').addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.sk){const sk=S.get('skills',{});sk[t.dataset.sk]=sk[t.dataset.sk]||{};sk[t.dataset.sk][t.dataset.i]=t.checked;S.set('skills',sk);renderMind()}
+});
+$('book-form').addEventListener('submit',e=>{e.preventDefault();const ti=$('bk-title').value.trim(),pg=parseInt($('bk-pages').value)||250;if(!ti)return;const a=books();a.push({id:Date.now().toString(36),title:ti,author:'',pages:pg,read:0,done:false});S.set('books',a);$('book-form').reset();renderMind()});
+$('note-form').addEventListener('submit',e=>{e.preventDefault();const tx=$('note-text').value.trim();if(!tx)return;const a=notes();a.push({date:todayStr(),text:tx});S.set('notes',a);$('note-text').value='';toast('Insight saved');renderMind();refreshAll()});
+$('course-form').addEventListener('submit',e=>{e.preventDefault();const n=$('course-name').value.trim();if(!n)return;const a=S.get('courses',[]);a.push({date:todayStr(),name:n});S.set('courses',a);$('course-name').value='';renderMind()});
+$('teach-plus').onclick=()=>{S.set('teach',S.get('teach',0)+1);renderMind()};
+$('teach-minus').onclick=()=>{S.set('teach',Math.max(0,S.get('teach',0)-1));renderMind()};
+
+/* =================================================================
+   WEALTH SYSTEM
+   ================================================================= */
+function txs(){return S.get('tx',[])}
+function bizRows(){return S.get('biz',[]).slice().sort((a,b)=>a.m<b.m?-1:1)}
+function snaps(){return S.get('nw',[]).slice().sort((a,b)=>a.date<b.date?-1:1)}
+function nwOf(s){if(!s)return null;const a=Object.values(s.a||{}).reduce((x,y)=>x+(+y||0),0),l=Object.values(s.l||{}).reduce((x,y)=>x+(+y||0),0);return a-l}
+function monthStats(m){const r={inc:0,exp:0,inv:0,side:0};txs().filter(t=>mon(t.date)===m).forEach(t=>{if(t.type==='in'){r.inc+=t.amt;if(t.cat==='Freelance'||t.cat==='Futurnyx')r.side+=t.amt}else if(t.type==='out')r.exp+=t.amt;else r.inv+=t.amt});
+  const b=bizRows().find(x=>x.m===m);r.bizRev=b?(+b.fx||0)+(+b.fl||0):0;r.bizCost=b?(+b.cost||0):0;r.sideAll=Math.max(r.side,r.bizRev);r.rate=r.inc>0?(r.inc-r.exp)/r.inc*100:null;return r}
+function lastMonths(n,includeCurrent){const out=[];const d=new Date();d.setDate(1);if(!includeCurrent)d.setMonth(d.getMonth()-1);for(let i=0;i<n;i++){out.push(ymd(d).slice(0,7));d.setMonth(d.getMonth()-1)}return out}
+function wealthMetrics(){
+  const months=[...new Set(txs().filter(t=>t.type==='out').map(t=>mon(t.date)))];
+  const l3=lastMonths(3,false),cur=mon(todayStr());
+  const use3=l3.filter(m=>monthStats(m).inc>0).length?l3:[cur];
+  const ms=use3.map(monthStats);
+  const avg=f=>ms.length?ms.reduce((a,x)=>a+f(x),0)/ms.length:0;
+  const rates=ms.map(x=>x.rate).filter(x=>x!=null);
+  const s=snaps(),last=s[s.length-1];
+  const avgExp=avg(x=>x.exp)||null;
+  const liquid=last?(+last.a.bank||0)+(+last.a.fd||0):0;
+  const b=bizRows();const lastB=b.slice(-3);const rev3=lastB.reduce((a,x)=>a+(+x.fx||0)+(+x.fl||0),0),cost3=lastB.reduce((a,x)=>a+(+x.cost||0),0);
+  const b12=b.slice(-12);const prof12=b12.reduce((a,x)=>a+(+x.fx||0)+(+x.fl||0)-(+x.cost||0),0);
+  const allSide=txs().filter(t=>t.type==='in'&&(t.cat==='Freelance'||t.cat==='Futurnyx')).reduce((a,t)=>a+t.amt,0);
+  const bizTotal=b.reduce((a,x)=>a+(+x.fx||0)+(+x.fl||0),0);
+  const mis=S.get('missions',{});
+  return {tracked:months.length,efund:avgExp?Math.round(liquid/avgExp*10)/10:null,baddebt:last?(+last.l.personal||0)+(+last.l.card||0):null,
+    srate:rates.length?Math.round(rates.reduce((a,b)=>a+b,0)/rates.length):null,sideTotal:Math.max(allSide,bizTotal),
+    side3:Math.round(avg(x=>x.sideAll)),customers:b.reduce((a,x)=>a+(+x.cust||0),0),runrate:lastB.length?Math.round(rev3/lastB.length*12):0,
+    team:b.length?(+b[b.length-1].team||0):0,margin:rev3>0?Math.round((rev3-cost3)/rev3*100):null,profit12:prof12,nw:nwOf(last),mis};
+}
+function critVal(k,M){if(k.startsWith('m_'))return M.mis[k]?1:0;return M[k]}
+function critOk(c,M){const v=critVal(c[0],M);if(v==null)return false;return c[2]==='≥'?v>=c[3]:c[2]==='≤'?v<=c[3]:v>=1}
+function wealthRankIdx(M){let i=0;while(i<Wealth.RANKS.length&&Wealth.RANKS[i].crit.every(c=>critOk(c,M)))i++;return i}
+function wStart(){let w=S.get('wstart',null);if(!w){w=todayStr();S.set('wstart',w)}return w}
+function monthsSince(ds){const a=parseYmd(ds),b=new Date();return (b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth()}
+function wealthQuests(ds){const r=getDay(ds),wq=r.wq||{};const acts=S.get('acts:'+ds,{}),n=Object.values(acts).reduce((a,b)=>a+b,0);
+  return [{id:'log',t:'Log today\'s money',s:'Every expense and income, even ₹10 chai',auto:true,done:txs().some(t=>t.date===ds)},
+    {id:'acts',t:'3 revenue actions',s:`${n} done today (outreach, call, proposal, content, product)`,auto:true,done:n>=3},
+    {id:'noimpulse',t:'No impulse buying',s:'Wait 48 hours before any non-essential purchase',done:!!wq.noimpulse}]}
+let txType='out';
+function renderWealth(){
+  const M=wealthMetrics(),ri=wealthRankIdx(M),R=Wealth.RANKS,cur=ri>=R.length?{name:'S-Rank · Shadow Monarch',goal:'₹100 Cr reached. Protect it and diversify.',month:60,crit:[]}:R[ri],letter=ri>=R.length?'S':R[ri].r;
+  const prev=S.get('wrank','E');if(RANKS.indexOf(letter)>RANKS.indexOf(prev)){S.set('wrank',letter);showRankUp(letter,'Wealth')}
+  const ms=monthsSince(wStart()),left=Math.max(1,60-ms);
+  const nw=M.nw;
+  $('wealth-hero').innerHTML=`<div class="sys">[ System ] · Wealth window · month ${ms+1} of 60</div>
+   <div class="rc"><div class="rank xl gold"><span>${letter}</span></div><div><b class="big-t">${esc(cur.name)}</b><span class="cue">${esc(cur.goal)} Target: month ${cur.month}.</span></div></div>
+   <div class="nwbig"><span class="k">Net worth</span><b>${nw==null?'–':inr(nw)}</b><span class="cue">${nw==null?'Add your first net worth snapshot below.':`${(nw/1e9*100).toFixed(2)}% of ₹100 Cr`}</span><div class="mtrack lg"><i style="width:${nw?Math.max(0.5,Math.min(100,nw/1e9*100)):0}%;background:var(--gold)"></i></div></div>
+   ${ri<R.length?`<ul class="reqs">${cur.crit.map(c=>{const v=critVal(c[0],M),ok=critOk(c,M);const show=c[2]==='done'?(v?'Done':'Not yet'):v==null?'–':c[4]==='₹'?inr(v):`${v}${c[4]}`;const tgt=c[2]==='done'?'':` <small>/ ${c[2]} ${c[4]==='₹'?inr(c[3]):c[3]+c[4]}</small>`;return `<li class="${ok?'ok':''}"><span>${esc(c[1])}</span><b>${show}${tgt}</b></li>`}).join('')}</ul>`:''}`;
+  // reality check
+  const invMonthly=Math.max(0,(()=>{const l=lastMonths(3,false).map(monthStats).filter(x=>x.inc>0);return l.length?l.reduce((a,x)=>a+x.inc-x.exp,0)/l.length:0})());
+  const last=snaps().slice(-1)[0],bizStake=last?(+last.a.business||0):0,fin=nw!=null?nw-bizStake:null;
+  const r=0.12/12,n=left;const proj=fin!=null?fin*Math.pow(1+r,n)+invMonthly*((Math.pow(1+r,n)-1)/r):null;
+  const need=nw&&nw>0?(Math.pow(1e9/nw,12/left)-1)*100:null;const gap=proj!=null?Math.max(0,1e9-proj):null;
+  $('reality').innerHTML=`<h3 class="sub">Reality check</h3>${nw==null?'<p class="cue">Add a net worth snapshot and a few months of income and expenses to see your numbers.</p>':`
+   <div class="statgrid three"><div class="stat"><span class="k">Growth needed</span><div class="v">${need==null?'–':need>999?'>999':Math.round(need)}%</div><span class="cue">per year for ${(left/12).toFixed(1)} years</span></div>
+   <div class="stat"><span class="k">Investing alone</span><div class="v">${inr(proj)}</div><span class="cue">at 12% a year + ${inr(invMonthly)}/month saved</span></div>
+   <div class="stat"><span class="k">Business must add</span><div class="v">${inr(gap)}</div><span class="cue">as your company stake</span></div></div>
+   <p class="cue">${gap>0?`Investing and saving alone reach about ${inr(proj)} by month 60. The other ${inr(gap)} has to come from the value of your share in Futurnyx. Education and services companies are often valued at roughly 1–3× yearly revenue, and software at higher multiples, so that means building toward about ${inr(gap/3)}–${inr(gap)} of yearly revenue.`:'Your investments alone are on track for the goal.'} These are rough estimates, not financial advice.</p>`}`;
+  $('wealth-quests').innerHTML=questHTML(wealthQuests(todayStr()),'data-wq');
+  // actions
+  const ta=S.get('acts:'+todayStr(),{});let wk=0;for(let i=0;i<7;i++){const a=S.get('acts:'+ymd(addDays(new Date(),-i)),{});wk+=Object.values(a).reduce((x,y)=>x+y,0)}
+  $('acts').innerHTML=Wealth.ACTIONS.map(([k,l])=>`<button type="button" class="actbtn" data-act="${k}"><span>${l}</span><b>${ta[k]||0}</b></button>`).join('');
+  $('acts-sum').innerHTML=`<b>${Object.values(ta).reduce((a,b)=>a+b,0)}</b> today · <b>${wk}</b> this week (target 15+)`;
+  // tx form
+  $('tx-type').innerHTML=[['out','Expense'],['in','Income'],['inv','Invest']].map(([k,l])=>`<button type="button" data-tt="${k}" aria-pressed="${k===txType}">${l}</button>`).join('');
+  const cats=txType==='in'?Wealth.INCOME:txType==='out'?Wealth.EXPENSE:Wealth.INVEST;
+  const sel=$('tx-cat').value;$('tx-cat').innerHTML=cats.map(c=>`<option${c===sel?' selected':''}>${esc(c)}</option>`).join('');
+  if(!$('tx-date').value)$('tx-date').value=todayStr();
+  // month summary
+  const m=mon(todayStr()),st=monthStats(m);
+  const byCat={};txs().filter(t=>t.type==='out'&&mon(t.date)===m).forEach(t=>byCat[t.cat]=(byCat[t.cat]||0)+t.amt);
+  const mx=Math.max(1,...Object.values(byCat));
+  $('month-sum').innerHTML=`<div class="statgrid"><div class="stat"><span class="k">Income</span><div class="v">${inr(st.inc)}</div></div><div class="stat"><span class="k">Spent</span><div class="v">${inr(st.exp)}</div></div><div class="stat"><span class="k">Invested</span><div class="v">${inr(st.inv)}</div></div><div class="stat"><span class="k">Savings rate</span><div class="v">${st.rate==null?'–':Math.round(st.rate)+'%'}</div><span class="cue">target 30%+</span></div></div>
+   ${Object.keys(byCat).length?`<div class="catbars">${Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<div class="cb"><span>${esc(c)}</span><div class="mtrack"><i style="width:${v/mx*100}%;background:var(--cardio)"></i></div><b>${inr(v)}</b></div>`).join('')}</div>`:''}`;
+  $('tx-list').innerHTML=txs().slice().sort((a,b)=>a.date<b.date?1:-1).slice(0,15).map(t=>`<div class="fe"><div class="fe-n"><b>${t.type==='in'?'+':t.type==='out'?'−':'→'} ${inr(t.amt)} · ${esc(t.cat)}</b><span>${t.date}${t.note?' · '+esc(t.note):''}</span></div><div class="fe-q"><button type="button" class="x" data-txdel="${t.id}" aria-label="Delete">✕</button></div></div>`).join('')||'<p class="cue">No entries yet.</p>';
+  // business
+  const b=bizRows();
+  lineChart($('chart-run'),b.map(x=>({date:x.m+'-01',v:Math.round(((+x.fx||0)+(+x.fl||0))*12/1e5*10)/10})),'L/yr','var(--gold)','Business revenue run-rate (₹ lakh a year)',false);
+  $('biz-list').innerHTML=b.length?`<table class="logt"><thead><tr><th>Month</th><th>Revenue</th><th>Profit</th><th>Cust.</th><th>Team</th></tr></thead><tbody>${b.slice().reverse().map(x=>{const rv=(+x.fx||0)+(+x.fl||0);return `<tr><td>${x.m}</td><td>${inr(rv)}</td><td>${inr(rv-(+x.cost||0))}</td><td>${x.cust||0}</td><td>${x.team||0}</td></tr>`}).join('')}</tbody></table>`:'';
+  if(!$('biz-m').value)$('biz-m').value=mon(todayStr());
+  // net worth
+  const s=snaps(),ls=s[s.length-1];
+  $('nw-fields').innerHTML=`<p class="k" style="grid-column:1/-1">Assets</p>${Wealth.ASSETS.map(([k,l])=>`<label for="nwa-${k}">${l}<input id="nwa-${k}" data-nwa="${k}" type="number" inputmode="numeric" min="0" step="1000" value="${ls&&ls.a[k]?ls.a[k]:''}"></label>`).join('')}
+   <p class="k" style="grid-column:1/-1">Loans</p>${Wealth.LIABS.map(([k,l])=>`<label for="nwl-${k}">${l}<input id="nwl-${k}" data-nwl="${k}" type="number" inputmode="numeric" min="0" step="1000" value="${ls&&ls.l[k]?ls.l[k]:''}"></label>`).join('')}`;
+  lineChart($('chart-nw'),s.map(x=>({date:x.date,v:Math.round(nwOf(x)/1e5*10)/10})),'L','var(--gold)','Net worth (₹ lakh)',false);
+  // missions
+  const mis=M.mis;
+  $('missions').innerHTML=RANKS.map((rl,i)=>{const list=Wealth.MISSIONS[rl]||[];const d=list.filter(([k])=>mis[k]).length;
+    return `<details class="skill"${i===ri?' open':''}><summary><b>${rl}-Rank missions</b><span class="cue">${d} / ${list.length}</span><div class="mtrack"><i style="width:${list.length?d/list.length*100:0}%;background:var(--gold)"></i></div></summary>
+     <div class="steps-ck">${list.map(([k,t])=>`<label class="q"><input type="checkbox" data-mis="${k}" ${mis[k]?'checked':''}><span>${esc(t)}</span></label>`).join('')}</div></details>`}).join('');
+}
+$('v-wealth').addEventListener('click',e=>{
+  const tt=e.target.closest('[data-tt]');if(tt){txType=tt.dataset.tt;$('tx-cat').value='';renderWealth();return}
+  const a=e.target.closest('[data-act]');if(a){const ds=todayStr(),o=S.get('acts:'+ds,{});o[a.dataset.act]=(o[a.dataset.act]||0)+1;S.set('acts:'+ds,o);toast('+1 revenue action');renderWealth();refreshAll();return}
+  const d=e.target.closest('[data-txdel]');if(d){if(d.dataset.confirm!=='1'){d.dataset.confirm='1';d.textContent='Delete?';d.classList.add('arm');return}S.set('tx',txs().filter(t=>t.id!==d.dataset.txdel));renderWealth();refreshAll()}
+});
+$('v-wealth').addEventListener('change',e=>{const t=e.target;if(t.dataset.mis){const m=S.get('missions',{});m[t.dataset.mis]=t.checked;S.set('missions',m);renderWealth()}});
+$('tx-form').addEventListener('submit',e=>{e.preventDefault();const amt=parseFloat($('tx-amt').value);if(!(amt>0)){$('tx-msg').textContent='Enter an amount.';return}
+  const a=txs();a.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),date:$('tx-date').value||todayStr(),type:txType,amt,cat:$('tx-cat').value,note:$('tx-note').value.trim()});S.set('tx',a);
+  $('tx-amt').value='';$('tx-note').value='';$('tx-msg').textContent=`Saved ${inr(amt)} · ${$('tx-cat').value}`;renderWealth();refreshAll()});
+$('biz-form').addEventListener('submit',e=>{e.preventDefault();const v=id=>parseFloat($(id).value)||0;const m=$('biz-m').value;if(!m)return;
+  const rows=S.get('biz',[]).filter(x=>x.m!==m);rows.push({m,fx:v('biz-fx'),fl:v('biz-fl'),cost:v('biz-cost'),cust:v('biz-cust'),team:v('biz-team')});S.set('biz',rows);$('biz-form').reset();$('biz-m').value=mon(todayStr());$('biz-msg').textContent=`Saved ${m}.`;renderWealth()});
+$('nw-form').addEventListener('submit',e=>{e.preventDefault();const a={},l={};document.querySelectorAll('[data-nwa]').forEach(i=>a[i.dataset.nwa]=parseFloat(i.value)||0);document.querySelectorAll('[data-nwl]').forEach(i=>l[i.dataset.nwl]=parseFloat(i.value)||0);
+  const s=S.get('nw',[]).filter(x=>x.date!==todayStr());s.push({date:todayStr(),a,l});S.set('nw',s);const m=S.get('missions',{});m.m_networth=true;S.set('missions',m);$('nw-msg').textContent=`Snapshot saved: ${inr(nwOf({a,l}))}. Update it once a month.`;renderWealth()});
+
+/* ---------- shared: rank-up overlay, Today summary ---------- */
+function showRankUp(r,sys){$('rankup-r').textContent=r;$('rankup-t').textContent=`${sys} system: you are now ${r}-Rank.`;$('rankup').hidden=false}
+function renderSystems(){
+  const M=wealthMetrics();const mi=mindRankIdx(),wi=wealthRankIdx(M);
+  const ml=mi>=Mind.RANKS.length?'S':Mind.RANKS[mi].r,wl=wi>=Wealth.RANKS.length?'S':Wealth.RANKS[wi].r;
+  const mq=mindQuests(todayStr()),wq=wealthQuests(todayStr());
+  $('systems').innerHTML=`<button type="button" class="sysbtn" data-go="plan"><span class="k">Body</span><b>${earnedRank()}</b><small>${questsFor(todayStr()).filter(q=>q.done).length}/${questsFor(todayStr()).length} quests</small></button>
+   <button type="button" class="sysbtn mind" data-go="mind"><span class="k">Mind</span><b>${ml}</b><small>${mq.filter(q=>q.done).length}/${mq.length} quests</small></button>
+   <button type="button" class="sysbtn gold" data-go="wealth"><span class="k">Wealth</span><b>${wl}</b><small>${wq.filter(q=>q.done).length}/${wq.length} quests</small></button>`;
+  $('mind-quests-today').innerHTML=questHTML(mq,'data-mq');
+  $('wealth-quests-today').innerHTML=questHTML(wq,'data-wq');
+}
+$('systems').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)showView(b.dataset.go)});
+document.addEventListener('change',e=>{const t=e.target,ds=todayStr();
+  if(t.dataset.mq){const r=getDay(ds);r.mq=r.mq||{};r.mq[t.dataset.mq]=t.checked;setDay(ds,r);refreshAll()}
+  if(t.dataset.wq){const r=getDay(ds);r.wq=r.wq||{};r.wq[t.dataset.wq]=t.checked;setDay(ds,r);refreshAll()}});
+function refreshAll(){const v=S.get('view','today');if(v==='today')renderToday();if(v==='mind')renderMind();if(v==='wealth')renderWealth();header()}
+
 /* ---------- toast ---------- */
 function toast(t){let el=$('toast');if(!el){el=document.createElement('div');el.id='toast';el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)}el.textContent=t;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('on'),2200)}
 
 /* =================================================================
    NAV + BOOT
    ================================================================= */
-const VIEWS=['today','plan','food','status','timer','settings'];
-function showView(v){VIEWS.forEach(x=>{$('v-'+x).hidden=x!==v;$('tab-'+x).setAttribute('aria-current',x===v?'page':'false')});S.set('view',v);window.scrollTo(0,0);
-  if(v==='today')renderToday();if(v==='plan')renderPlan();if(v==='food'){foodDate=todayStr();foodMeal=mealNow();renderFood()}if(v==='status')renderStatus();}
-VIEWS.forEach(v=>$('tab-'+v).addEventListener('click',()=>showView(v)));
-function refresh(){header();const v=S.get('view','today');if(v==='today')renderToday();if(v==='plan')renderPlan();if(v==='food')renderFood();if(v==='status')renderStatus()}
+const VIEWS=['today','plan','food','mind','wealth','status','timer','settings'];
+function showView(v){VIEWS.forEach(x=>{$('v-'+x).hidden=x!==v;const tb=$('tab-'+x);if(tb)tb.setAttribute('aria-current',x===v||(v==='timer'&&x==='plan')?'page':'false')});S.set('view',v);window.scrollTo(0,0);
+  if(v==='today')renderToday();if(v==='plan')renderPlan();if(v==='food'){foodDate=todayStr();foodMeal=mealNow();renderFood()}if(v==='mind')renderMind();if(v==='wealth')renderWealth();if(v==='status')renderStatus();}
+VIEWS.forEach(v=>{const tb=$('tab-'+v);if(tb)tb.addEventListener('click',()=>showView(v))});
+$('btn-settings').onclick=()=>showView('settings');$('open-timer').onclick=()=>showView('timer');
+document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>showView(b.dataset.back));
+function refresh(){header();const v=S.get('view','today');if(v==='today')renderToday();if(v==='plan')renderPlan();if(v==='food')renderFood();if(v==='mind')renderMind();if(v==='wealth')renderWealth();if(v==='status')renderStatus()}
 
 let deferred=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('install').hidden=false});

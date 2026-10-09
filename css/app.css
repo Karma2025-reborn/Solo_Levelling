@@ -397,3 +397,51 @@ details[open] summary::after{content:" −"}
 .mb span{font:700 13px var(--display);letter-spacing:.08em;color:var(--cyan)}
 .mb b{font:700 15px var(--display);text-align:right;font-variant-numeric:tabular-nums}
 .mb b.up{color:var(--ok)}.mb b.down{color:var(--cardio)}
+
+/* =========================== MIND & WEALTH =========================== */
+.iconbtn{background:none;border:1px solid var(--line);border-radius:6px;width:40px;height:40px;display:grid;place-items:center;color:var(--muted);cursor:pointer;flex:none}
+.iconbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.systems{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sysbtn{background:var(--panel);border:1px solid var(--cyan);border-radius:6px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ink);cursor:pointer;box-shadow:0 0 12px rgba(83,200,255,.12)}
+.sysbtn b{font:700 34px/1 var(--display);color:var(--cyan)}
+.sysbtn small{font-size:12px;color:var(--muted)}
+.sysbtn.mind{border-color:var(--stretch);box-shadow:0 0 12px rgba(184,146,255,.15)}.sysbtn.mind b{color:var(--stretch)}
+.sysbtn.gold{border-color:var(--gold);box-shadow:0 0 12px rgba(242,193,78,.15)}.sysbtn.gold b{color:var(--gold)}
+h3.sub.mindc{color:var(--stretch)}h3.sub.goldc{color:var(--gold)}
+.mindwin{border-color:var(--stretch);box-shadow:0 0 24px rgba(184,146,255,.12)}
+.goldwin{border-color:var(--gold);box-shadow:0 0 24px rgba(242,193,78,.12)}
+.mindwin .rank{border-color:var(--stretch);box-shadow:0 0 14px rgba(184,146,255,.35)}.mindwin .rank span{color:var(--stretch);text-shadow:0 0 10px rgba(184,146,255,.6)}
+.rank.gold{border-color:var(--gold);box-shadow:0 0 14px rgba(242,193,78,.35)}.rank.gold span{color:var(--gold);text-shadow:0 0 10px rgba(242,193,78,.6)}
+.reqbars{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 14px;margin-top:14px}
+.reqbars .tot{display:none}
+.mindring{stroke:var(--stretch);filter:drop-shadow(0 0 8px rgba(184,146,255,.6))}
+.fstats{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;color:var(--muted);font-size:14px}
+.fstats b{font:700 20px var(--display);color:var(--ink)}
+.book{display:flex;flex-direction:column;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.bk-t{display:flex;flex-direction:column}.bk-t span{font-size:13px;color:var(--muted)}
+ol.lessons{margin:8px 0 0;padding-left:26px;columns:2;column-gap:20px;font-size:14px}
+ol.lessons li{break-inside:avoid;padding:2px 0}
+ol.lessons li.ok .link{color:var(--ok)}ol.lessons li.cur .link{color:var(--gold)}
+ol.lessons .link{font-size:14px;text-align:left}
+details.skill{border:1px solid var(--line);border-radius:4px;padding:10px 12px;margin-top:8px;background:var(--panel2)}
+details.skill summary{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center}
+details.skill summary .mtrack{grid-column:1/-1}
+details.skill summary::after{display:none}
+.steps-ck{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.steps-ck .q{background:var(--panel)}
+.notes li{font-size:15px}
+.nwbig{display:flex;flex-direction:column;gap:2px;margin-top:14px}
+.nwbig b{font:700 40px/1.05 var(--display);color:var(--gold);font-variant-numeric:tabular-nums}
+.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.actbtn{background:var(--panel2);border:1px solid var(--line);border-radius:4px;color:var(--ink);padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font:inherit;font-size:13px;text-align:center}
+.actbtn b{font:700 22px var(--display);color:var(--gold)}
+.actbtn:active{border-color:var(--gold)}
+#acts-sum b{color:var(--ink)}
+.catbars{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.cb{display:grid;grid-template-columns:110px 1fr 84px;gap:8px;align-items:center;font-size:13px}
+.cb b{text-align:right;font-variant-numeric:tabular-nums}
+.cb span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#nw-fields .k{margin:6px 0 0}
+.statgrid .v{word-break:break-word}
+@media (max-width:640px){.acts{grid-template-columns:repeat(2,1fr)}ol.lessons{columns:1}.reqbars{grid-template-columns:1fr}}
+@media (max-width:420px){.appbar .lv{display:none}.sysbtn b{font-size:28px}}

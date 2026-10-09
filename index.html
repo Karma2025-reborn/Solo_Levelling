@@ -22,6 +22,7 @@
   <div class="appbar-t"><b id="appname">Hunter System</b><span id="ranksub">Week 1 · E-Rank</span></div>
   <div class="lv"><span class="k">Level</span><b id="lv">1</b></div>
   <button type="button" id="install" class="ghost small" hidden>Install</button>
+  <button type="button" id="btn-settings" class="iconbtn" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg></button>
 </header>
 
 <div class="wrap">
@@ -34,6 +35,8 @@
     <div class="xprow"><div class="xp"><i id="xpbar"></i></div><span id="xptext" class="cue"></span></div>
   </section>
 
+  <section class="systems" id="systems"></section>
+
   <section class="win water">
     <div class="waterhead"><div><span class="k">Water</span><div class="v"><b id="water-now">0</b><small id="water-goal">/ 3.0 L</small></div></div>
       <div class="glass" aria-hidden="true"><i id="water-fill"></i></div></div>
@@ -45,8 +48,12 @@
   </section>
 
   <section class="win">
-    <h3 class="sub">Daily quests</h3>
+    <h3 class="sub">Body quests</h3>
     <div class="quests" id="quests"></div>
+    <h3 class="sub mindc" style="margin-top:16px">Mind quests</h3>
+    <div class="quests" id="mind-quests-today"></div>
+    <h3 class="sub goldc" style="margin-top:16px">Wealth quests</h3>
+    <div class="quests" id="wealth-quests-today"></div>
   </section>
 
   <section class="win" id="mini-dash"></section>
@@ -62,6 +69,7 @@
 
 <!-- ======================= PLAN ======================= -->
 <section id="v-plan" class="view" hidden>
+  <div class="t-actions left"><button type="button" class="ghost" id="open-timer">Rest timer</button></div>
   <section class="win">
     <div class="sys">[ System ] · 72-week path</div>
     <div class="ranks" id="ranks" role="group" aria-label="Rank stage"></div>
@@ -115,6 +123,97 @@
     </details>
     <p class="cue" style="margin-top:10px">Values are home-cooking estimates. Restaurant and hotel food is usually 20–50% higher because of oil and butter.</p>
   </section>
+</section>
+
+<!-- ======================= MIND ======================= -->
+<section id="v-mind" class="view" hidden>
+  <section class="win mindwin" id="mind-hero"></section>
+  <section class="win"><h3 class="sub mindc">Mind quests</h3><div class="quests" id="mind-quests"></div></section>
+  <section class="win timer">
+    <div class="sys">[ System ] · Deep-work timer</div>
+    <label for="f-label" class="sr">What are you working on?</label>
+    <input id="f-label" class="search" placeholder="What are you working on? e.g. CAESAR II course module 3">
+    <div class="ring"><svg viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="88" class="ring-bg"/><circle cx="100" cy="100" r="88" class="ring-fg mindring" id="f-ring" transform="rotate(-90 100 100)"/></svg>
+      <div class="ring-c"><div id="f-time" class="t-time" role="timer">50:00</div><div class="cue">Phone face down. One task only.</div></div></div>
+    <div class="seg center" id="f-presets"><button type="button" data-m="25">25 min</button><button type="button" data-m="50">50 min</button><button type="button" data-m="90">90 min</button></div>
+    <div class="t-actions"><button type="button" id="f-start" class="primary big">Start focus</button><button type="button" id="f-stop" class="ghost">Stop &amp; log</button></div>
+    <div class="fstats" id="focus-stats"></div>
+  </section>
+  <section class="win" id="lesson"></section>
+  <section class="win">
+    <h3 class="sub mindc">Reading</h3>
+    <div id="book-list"></div>
+    <form id="book-form" class="logform" style="margin-top:12px"><label for="bk-title">Add your own book<input id="bk-title" placeholder="Book title"></label><label for="bk-pages">Pages<input id="bk-pages" type="number" inputmode="numeric" min="20" step="10" placeholder="250"></label><button type="submit" class="ghost">Add book</button></form>
+    <div id="book-done" style="margin-top:12px"></div>
+    <details style="margin-top:12px"><summary><span class="k">Hunter library · 25 books</span></summary><div id="library"></div></details>
+  </section>
+  <section class="win"><h3 class="sub mindc">Skill tracks</h3><p class="cue">Tick each milestone when it's truly done. These build the career and business skills behind the Wealth system.</p><div id="skills"></div></section>
+  <section class="win">
+    <div class="diethead"><h3 class="sub mindc">Insight journal</h3><span class="cue" id="note-count"></span></div>
+    <form id="note-form"><label for="note-text" class="sr">Today's insight</label><textarea id="note-text" rows="2" placeholder="One thing I learned or realised today…"></textarea><div class="t-actions left" style="margin-top:8px"><button type="submit" class="primary">Save insight</button></div></form>
+    <ul class="plain notes" id="note-list"></ul>
+  </section>
+  <section class="win">
+    <h3 class="sub mindc">Courses &amp; teaching</h3>
+    <form id="course-form" class="logform"><label for="course-name">Course or certification finished<input id="course-name" placeholder="e.g. Leadership course, Python for engineers"></label><button type="submit" class="ghost">Add</button></form>
+    <ul class="plain" id="course-list" style="margin-top:8px"></ul>
+    <div class="setcount" style="margin-top:14px"><button type="button" id="teach-minus" class="ghost" aria-label="One less">−</button><div><span class="k">Lessons / talks published</span><b id="teach-n">0</b></div><button type="button" id="teach-plus" class="ghost" aria-label="One more">+</button></div>
+    <p class="cue">Count every Futurnyx lesson, YouTube video, LinkedIn teaching post or talk you publish.</p>
+  </section>
+</section>
+
+<!-- ======================= WEALTH ======================= -->
+<section id="v-wealth" class="view" hidden>
+  <section class="win goldwin" id="wealth-hero"></section>
+  <section class="win" id="reality"></section>
+  <section class="win"><h3 class="sub goldc">Wealth quests</h3><div class="quests" id="wealth-quests"></div></section>
+  <section class="win">
+    <h3 class="sub goldc">Revenue actions</h3>
+    <p class="cue">Money comes from actions that reach customers. Tap each time you do one.</p>
+    <div class="acts" id="acts"></div>
+    <p class="cue" id="acts-sum"></p>
+  </section>
+  <section class="win">
+    <h3 class="sub goldc">Money log</h3>
+    <div class="seg" id="tx-type" role="group" aria-label="Entry type"></div>
+    <form id="tx-form" class="logform" style="margin-top:10px">
+      <label for="tx-amt">Amount (₹)<input id="tx-amt" type="number" inputmode="decimal" min="0" step="1" placeholder="250"></label>
+      <label for="tx-cat">Category<select id="tx-cat"></select></label>
+      <label for="tx-date">Date<input id="tx-date" type="date"></label>
+      <label for="tx-note">Note<input id="tx-note" placeholder="optional"></label>
+      <button type="submit" class="primary">Save</button>
+    </form>
+    <p class="cue" id="tx-msg" role="status"></p>
+    <h3 class="sub" style="margin-top:14px">This month</h3>
+    <div id="month-sum"></div>
+    <h3 class="sub" style="margin-top:14px">Recent entries</h3>
+    <div id="tx-list"></div>
+  </section>
+  <section class="win">
+    <h3 class="sub goldc">Business: Futurnyx + freelance</h3>
+    <p class="cue">Enter once a month. This drives your C, B and A rank tests.</p>
+    <form id="biz-form" class="logform">
+      <label for="biz-m">Month<input id="biz-m" type="month"></label>
+      <label for="biz-fx">Futurnyx revenue (₹)<input id="biz-fx" type="number" inputmode="numeric" min="0"></label>
+      <label for="biz-fl">Freelance revenue (₹)<input id="biz-fl" type="number" inputmode="numeric" min="0"></label>
+      <label for="biz-cost">Business costs (₹)<input id="biz-cost" type="number" inputmode="numeric" min="0"></label>
+      <label for="biz-cust">New paying customers<input id="biz-cust" type="number" inputmode="numeric" min="0"></label>
+      <label for="biz-team">Team size (incl. you)<input id="biz-team" type="number" inputmode="numeric" min="0"></label>
+      <button type="submit" class="primary">Save month</button>
+    </form>
+    <p class="cue" id="biz-msg" role="status"></p>
+    <div class="chartbox" id="chart-run" style="margin-top:12px"></div>
+    <div class="tablewrap" id="biz-list"></div>
+  </section>
+  <section class="win">
+    <h3 class="sub goldc">Net worth snapshot</h3>
+    <p class="cue">Update once a month. Use today's values. Business stake = a conservative value of your share.</p>
+    <form id="nw-form"><div class="logform" id="nw-fields"></div><div class="t-actions left" style="margin-top:10px"><button type="submit" class="primary">Save snapshot</button></div></form>
+    <p class="cue" id="nw-msg" role="status"></p>
+    <div class="chartbox" id="chart-nw" style="margin-top:12px"></div>
+  </section>
+  <section class="win"><h3 class="sub goldc">Missions</h3><div id="missions"></div></section>
+  <p class="cue center">Not financial advice. Check tax, legal and investment decisions with a qualified CA or adviser. All money data stays on this phone.</p>
 </section>
 
 <!-- ======================= STATUS ======================= -->
@@ -180,6 +279,7 @@
 
 <!-- ======================= TIMER ======================= -->
 <section id="v-timer" class="view" hidden>
+  <div class="t-actions left"><button type="button" class="ghost small" data-back="plan">‹ Back to workout</button></div>
   <section class="win timer">
     <div class="sys">[ System ] · Rest timer</div>
     <div class="ring">
@@ -196,6 +296,7 @@
 
 <!-- ======================= SETTINGS ======================= -->
 <section id="v-settings" class="view" hidden>
+  <div class="t-actions left"><button type="button" class="ghost small" data-back="today">‹ Back</button></div>
   <section class="win">
     <div class="sys">[ System ] · Hunter profile</div>
     <h2 class="vh">Settings</h2>
@@ -241,7 +342,7 @@
     </ul>
     <button type="button" id="reset" class="danger" style="margin-top:12px">Erase all progress</button>
   </section>
-  <p class="cue center">Hunter System · v2.2 · works offline once installed</p>
+  <p class="cue center">Hunter System · v3.0 · works offline once installed</p>
 </section>
 </div>
 
@@ -264,11 +365,11 @@
 
 <nav class="tabbar" aria-label="App sections">
   <button type="button" id="tab-today"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Today</button>
-  <button type="button" id="tab-plan"><svg viewBox="0 0 24 24"><path d="M6 4v16M18 4v16M3 9h6M15 9h6M3 15h6M15 15h6M9 12h6"/></svg>Plan</button>
+  <button type="button" id="tab-plan"><svg viewBox="0 0 24 24"><path d="M6 4v16M18 4v16M3 9h6M15 9h6M3 15h6M15 15h6M9 12h6"/></svg>Body</button>
   <button type="button" id="tab-food"><svg viewBox="0 0 24 24"><path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v6M9 3v6M17 21V3c-2.5 1-4 4-4 8h4"/></svg>Food</button>
-  <button type="button" id="tab-status"><svg viewBox="0 0 24 24"><path d="M4 18l5-6 4 3 7-9"/></svg>Status</button>
-  <button type="button" id="tab-timer"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>Timer</button>
-  <button type="button" id="tab-settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>Settings</button>
+  <button type="button" id="tab-mind"><svg viewBox="0 0 24 24"><path d="M9 3a4 4 0 0 0-4 4 4 4 0 0 0-1 7 4 4 0 0 0 5 5V3zM15 3a4 4 0 0 1 4 4 4 4 0 0 1 1 7 4 4 0 0 1-5 5V3z"/></svg>Mind</button>
+  <button type="button" id="tab-wealth"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg>Wealth</button>
+  <button type="button" id="tab-status"><svg viewBox="0 0 24 24"><path d="M4 18l5-6 4 3 7-9"/></svg>Stats</button>
 </nav>
 
 <script src="js/figures.js"></script>
@@ -276,6 +377,8 @@
 <script src="js/program.js"></script>
 <script src="js/diet.js"></script>
 <script src="js/foods.js"></script>
+<script src="js/mind.js"></script>
+<script src="js/wealth.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

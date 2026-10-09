@@ -1,4 +1,4 @@
-# Hunter System v2.2
+# Hunter System v3.0
 
 A 72-week E → S rank transformation app that installs on your phone and works offline.
 
@@ -11,6 +11,30 @@ A 72-week E → S rank transformation app that installs on your phone and works 
 | **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
 | **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
 | **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
+
+## v3.0: three systems
+
+The bottom bar is now **Today · Body · Food · Mind · Wealth · Stats**. Settings is the gear icon at the top right; the rest timer is a button at the top of Body.
+
+**Today** shows your Body, Mind and Wealth ranks plus all three daily quest lists.
+
+**Mind (INT), E → S**: ranks up automatically when every target is met (books finished, deep-work hours, money lessons, insights, courses, lessons/talks published).
+- Daily quests: 20 pages, 90 min deep work, 30 min skill, money lesson, 1 insight, no phone in the first hour
+- Deep-work timer (25 / 50 / 90 min) that logs your hours
+- Reading tracker + a 25-book Hunter library (habits, money, business, leadership, sales, AI)
+- 52-week money & business curriculum, one lesson + action per week
+- 4 skill tracks: leadership (HOD), AI for engineering, business & sales, technical depth (stress engine)
+- Insight journal, courses and teaching counter
+
+**Wealth, E → S (₹100 Cr in 60 months)**: ranks up automatically from your data.
+- E Foundation (month 6): money tracked, emergency fund, no bad debt, 30% savings rate, insurance, first side income
+- D Launch (month 18): ₹2 L/month side income, Futurnyx registered, 50 customers, ₹50 L net worth
+- C Scale (month 30): ₹1 Cr revenue run-rate, team of 5, ₹1 Cr net worth
+- B Company (month 42): ₹10 Cr run-rate, 20% margin, ₹10 Cr net worth
+- A Empire (month 60): ₹40 Cr run-rate, ₹8 Cr profit, ₹100 Cr net worth → S
+- Reality check (growth needed, what investing alone reaches, what the business must add), money log with savings rate and category breakdown, revenue-action counter, monthly business metrics with run-rate chart, net worth snapshots with chart, and missions for every rank.
+
+Not financial advice. Check tax, legal and investment decisions with a qualified CA or adviser.
 
 ## The path
 
@@ -61,6 +85,8 @@ Everything is stored on your phone only. Uninstalling the app or clearing Chrome
 | Exercise instructions, mistakes, tips | `js/exercises.js` |
 | Meals, timeline times, water amounts, diet rules | `js/diet.js` |
 | Food database (calories and macros per serving) | `js/foods.js` |
+| Mind ranks, library, skill tracks, money lessons | `js/mind.js` |
+| Wealth ranks, missions, categories | `js/wealth.js` |
 | Stick-figure animations | `js/figures.js` (each figure is pose A ↔ pose B) |
 | Screens, tracking, reminders, timer | `js/app.js` |
 | Colours and fonts | top of `css/app.css` |
