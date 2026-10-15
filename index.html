@@ -35,7 +35,7 @@
     <div class="xprow"><div class="xp"><i id="xpbar"></i></div><span id="xptext" class="cue"></span></div>
   </section>
 
-  <section class="systems" id="systems"></section>
+  <section class="win" id="breath"></section>
 
   <section class="win water">
     <div class="waterhead"><div><span class="k">Water</span><div class="v"><b id="water-now">0</b><small id="water-goal">/ 3.0 L</small></div></div>
@@ -50,11 +50,8 @@
   <section class="win">
     <h3 class="sub">Body quests</h3>
     <div class="quests" id="quests"></div>
-    <h3 class="sub mindc" style="margin-top:16px">Mind quests</h3>
-    <div class="quests" id="mind-quests-today"></div>
-    <h3 class="sub goldc" style="margin-top:16px">Wealth quests</h3>
-    <div class="quests" id="wealth-quests-today"></div>
   </section>
+  <section class="win mindwin" id="mission-today"></section>
 
   <section class="win" id="mini-dash"></section>
 
@@ -70,6 +67,11 @@
 <!-- ======================= PLAN ======================= -->
 <section id="v-plan" class="view" hidden>
   <div class="t-actions left"><button type="button" class="ghost" id="open-timer">Rest timer</button></div>
+  <section class="win" id="health"></section>
+  <section class="win vitwin" id="vitality"></section>
+  <section class="win" id="belly"></section>
+  <section class="win" id="asthma"></section>
+  <section class="win" id="lookbest"></section>
   <section class="win">
     <div class="sys">[ System ] · 72-week path</div>
     <div class="ranks" id="ranks" role="group" aria-label="Rank stage"></div>
@@ -94,7 +96,7 @@
     <div class="t-actions left"><button type="button" class="primary" id="food-parse">Add to log</button><button type="button" class="ghost" id="food-copy">Copy previous day</button></div>
     <p class="cue" id="food-parse-msg" role="status">Write it the way you'd say it. Quantities like "2", "half", "150 g", "big bowl" are understood.</p>
     <label for="food-q" class="sr">Search foods</label>
-    <input id="food-q" class="search" type="search" placeholder="Search 140+ Indian foods…" autocomplete="off">
+    <input id="food-q" class="search" type="search" placeholder="Search 1,150+ Indian foods: misal, tambda rassa, bhakri…" autocomplete="off">
     <p class="k" id="food-res-h" style="margin:10px 0 4px"></p>
     <ul class="foodres" id="food-res"></ul>
   </section>
@@ -121,7 +123,41 @@
         <button type="submit" class="primary">Save and add</button>
       </form><p class="cue" id="cf-msg" role="status"></p>
     </details>
-    <p class="cue" style="margin-top:10px">Values are home-cooking estimates. Restaurant and hotel food is usually 20–50% higher because of oil and butter.</p>
+    <p class="cue" style="margin-top:10px">Built-in foods: 140 everyday items and 130 Maharashtrian / Kolhapuri dishes (home-cooking estimates), plus 1,014 recipes from the Indian Nutrient Databank (Vijayakumar et al., Curr Dev Nutr 2024). Restaurant food is usually 20–50% higher because of oil and butter.</p>
+  </section>
+</section>
+
+<!-- ======================= MISSION ======================= -->
+<section id="v-mission" class="view" hidden>
+  <section class="win mindwin" id="mission-hero"></section>
+  <section class="win" id="mission-step"></section>
+  <section class="win timer">
+    <div class="sys">[ System ] · Money hour</div>
+    <div class="t-time" id="m-time">0:00:00</div>
+    <div class="t-actions"><button type="button" class="primary big" id="m-start">Start money hour</button></div>
+    <p class="cue center" id="m-today"></p>
+    <div class="t-actions"><label for="m-manual" class="sr">Minutes</label><input id="m-manual" class="search" style="max-width:120px" type="number" inputmode="numeric" min="1" placeholder="min"><button type="button" class="ghost" id="m-add">Add minutes manually</button></div>
+    <p class="cue center">Target: 1 hour Mon–Fri (8:45–9:45 pm) + 3 hours Sunday = 8 hours a week.</p>
+  </section>
+  <section class="win"><h3 class="sub mindc">Roadmap to your own company</h3><div id="mission-road"></div></section>
+  <section class="win">
+    <h3 class="sub mindc">Futurnyx revenue</h3>
+    <form id="mr-form" class="logform">
+      <label for="mr-m">Month<input id="mr-m" type="month"></label>
+      <label for="mr-rev">Revenue (₹)<input id="mr-rev" type="number" inputmode="numeric" min="0"></label>
+      <label for="mr-stu">New students<input id="mr-stu" type="number" inputmode="numeric" min="0"></label>
+      <button type="submit" class="primary">Save month</button>
+    </form>
+    <div class="chartbox" id="chart-mrev" style="margin-top:12px"></div>
+  </section>
+  <section class="win">
+    <h3 class="sub mindc">Your week</h3>
+    <div class="tablewrap"><table class="logt"><thead><tr><th>Day</th><th>Time</th><th>What</th></tr></thead><tbody id="week-plan"></tbody></table></div>
+  </section>
+  <section class="win">
+    <h3 class="sub">Parking lot · paused until Phase 2</h3>
+    <p class="cue">Good ideas, wrong time. Every extra project steals hours from the one that pays first.</p>
+    <ul class="plain" id="parking"></ul>
   </section>
 </section>
 
@@ -307,6 +343,9 @@
       <label for="s-start">Plan start date<input id="s-start" type="date"><span class="cue">Snaps to that week's Monday.</span></label>
       <label for="s-diet">Diet<select id="s-diet"><option value="0">Pure veg</option><option value="1">Veg + egg</option><option value="2">Non-veg</option></select></label>
       <label for="s-gym">Gym time<select id="s-gym"><option value="morning">Morning (6:45 am)</option><option value="evening">Evening (5:30 pm)</option></select></label>
+      <label for="s-t38">Goal date (before age 38)<input id="s-t38" type="date"><span class="cue">The Mission countdown runs to this date.</span></label>
+      <label class="check" for="s-hold"><input id="s-hold" type="checkbox"> Waiting for chest doctor review (swaps sprints, jumps and hard runs for steady cardio)</label>
+      <label class="check" for="s-asthma"><input id="s-asthma" type="checkbox"> I have asthma (adds a daily breathing check and safer training cues)</label>
       <label class="check" for="s-supp"><input id="s-supp" type="checkbox"> Remind me about ashwagandha and magnesium</label>
     </div>
   </section>
@@ -325,6 +364,11 @@
   </section>
 
   <section class="win">
+    <h3 class="sub">Advanced trackers</h3>
+    <p class="cue">The full Mind and Wealth systems are still here with all your data. Use them later when you have more time.</p>
+    <div class="t-actions left"><button type="button" class="ghost" id="adv-mind">Open Mind (INT)</button><button type="button" class="ghost" id="adv-wealth">Open Wealth</button></div>
+  </section>
+  <section class="win">
     <h3 class="sub">Backup</h3>
     <p class="cue">Your data lives only on this phone. Save a backup every couple of weeks.</p>
     <div class="t-actions left">
@@ -342,7 +386,7 @@
     </ul>
     <button type="button" id="reset" class="danger" style="margin-top:12px">Erase all progress</button>
   </section>
-  <p class="cue center">Hunter System · v3.0 · works offline once installed</p>
+  <p class="cue center">Hunter System · v4.2 · works offline once installed</p>
 </section>
 </div>
 
@@ -367,8 +411,9 @@
   <button type="button" id="tab-today"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Today</button>
   <button type="button" id="tab-plan"><svg viewBox="0 0 24 24"><path d="M6 4v16M18 4v16M3 9h6M15 9h6M3 15h6M15 15h6M9 12h6"/></svg>Body</button>
   <button type="button" id="tab-food"><svg viewBox="0 0 24 24"><path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v6M9 3v6M17 21V3c-2.5 1-4 4-4 8h4"/></svg>Food</button>
-  <button type="button" id="tab-mind"><svg viewBox="0 0 24 24"><path d="M9 3a4 4 0 0 0-4 4 4 4 0 0 0-1 7 4 4 0 0 0 5 5V3zM15 3a4 4 0 0 1 4 4 4 4 0 0 1 1 7 4 4 0 0 1-5 5V3z"/></svg>Mind</button>
-  <button type="button" id="tab-wealth"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg>Wealth</button>
+  <button type="button" id="tab-mission"><svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>Mission</button>
+  <button type="button" id="tab-mind" hidden><svg viewBox="0 0 24 24"><path d="M9 3a4 4 0 0 0-4 4 4 4 0 0 0-1 7 4 4 0 0 0 5 5V3zM15 3a4 4 0 0 1 4 4 4 4 0 0 1 1 7 4 4 0 0 1-5 5V3z"/></svg>Mind</button>
+  <button type="button" id="tab-wealth" hidden><svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg>Wealth</button>
   <button type="button" id="tab-status"><svg viewBox="0 0 24 24"><path d="M4 18l5-6 4 3 7-9"/></svg>Stats</button>
 </nav>
 
@@ -376,9 +421,12 @@
 <script src="js/exercises.js"></script>
 <script src="js/program.js"></script>
 <script src="js/diet.js"></script>
+<script src="js/foods_mh.js"></script>
+<script src="js/foods_indb.js"></script>
 <script src="js/foods.js"></script>
 <script src="js/mind.js"></script>
 <script src="js/wealth.js"></script>
+<script src="js/mission.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -17,7 +17,7 @@ const R=[
 ['rice','White rice (cooked)','1 cup',150,195,4,43,0.4,0.6,'rice|chawal|bhat|plain rice|steamed rice|white rice',''],
 ['brownrice','Brown rice (cooked)','1 cup',150,215,5,45,1.8,3.5,'brown rice',''],
 ['jeerarice','Jeera rice','1 cup',150,250,4.5,44,6,1,'jeera rice|fried rice',''],
-['vegbiryani','Veg biryani','1 plate',300,480,11,70,17,5,'veg biryani|veg pulao|pulao|pulav|masale bhat',''],
+['vegbiryani','Veg biryani','1 plate',300,480,11,70,17,5,'veg biryani|veg pulao|pulao|pulav',''],
 ['chickenbiryani','Chicken biryani','1 plate',350,600,28,70,22,4,'chicken biryani|biryani|mutton biryani',''],
 ['khichdi','Dal khichdi','1 bowl',250,290,10,48,6,5,'khichdi|khichadi|dal khichdi',''],
 ['breadwhite','White bread','1 slice',28,70,2.3,13,0.9,0.6,'bread|white bread|slice of bread|bread slice',''],
@@ -155,5 +155,6 @@ const R=[
 ['oiltbsp','Cooking oil','1 tbsp',15,135,0,0,15,0,'tbsp oil|tablespoon oil','']
 ];
 const FOODS={};R.forEach(([k,n,u,g,kcal,p,c,f,fi,al,tag])=>{FOODS[k]={k,n,u,g,kcal,p,c,f,fi,al:al.split('|'),tag}});
+[...(window.FOODS_MH||[]),...(window.FOODS_INDB||[])].forEach(([k,n,u,g,kcal,p,c,f,fi,al,tag])=>{if(!FOODS[k])FOODS[k]={k,n,u,g,kcal,p,c,f,fi,al:(al||n.toLowerCase()).split('|').filter(Boolean),tag,src:k[0]==='i'?'INDB':k[0]==='m'&&k[1]==='_'?'MH':''}});
 window.FOODS=FOODS;
 })();

@@ -52,24 +52,40 @@ const DN=[
  V('Dal + sabzi + 1 roti + salad, light','2-egg omelette + sabzi + 1 roti','100 g chicken + sabzi + 1 roti')];
 
 /* Timeline. type: water | meal | gym | supp | sleep. ml = share of the day's water. */
-const MORNING=[
- ['06:00','wake','meal','Wake up','Warm water, then 5 soaked almonds + 2 walnuts',400],
- ['06:15','pg','meal','Pre-gym snack',null,0],
- ['06:45','gym','gym','Gym session','Take a 500 ml bottle and finish it by the end of the session',500],
- ['08:15','bf','meal','Breakfast (post-workout)','Protein first',250],
- ['09:30','w1','water','Water',null,300],
- ['11:00','mm','meal','Mid-morning snack',null,250],
+const MORNING=[ // Mon–Sat: wake 5:45, gym 6:15–7:30, office 9:30–7:45 incl. travel
+ ['05:45','wake','meal','Wake up','Warm water, then 5 soaked almonds + 2 walnuts',400],
+ ['06:00','pg','meal','Pre-gym snack',null,0],
+ ['06:15','gym','gym','Gym session','Take a 500 ml bottle and finish it by 7:30',500],
+ ['07:45','bf','meal','Breakfast (post-workout)','Protein first',250],
+ ['09:00','commute','work','Commute: learn','Audiobook or podcast on business, money or leadership. Do the 5-min pelvic floor routine while seated.',0],
+ ['10:30','w1','water','Water',null,300],
+ ['11:30','mm','meal','Mid-morning snack',null,250],
  ['12:30','w2','water','Water',null,300],
- ['13:30','ln','meal','Lunch','Half the plate vegetables or salad',0],
+ ['13:30','ln','meal','Lunch','Half the plate vegetables or salad. Then a 10–15 min walk',0],
  ['15:00','w3','water','Water',null,300],
  ['16:30','sn','meal','Evening snack',null,250],
  ['18:00','w4','water','Water',null,300],
- ['19:30','dn','meal','Dinner','Light. 2–3 hours before bed',0],
- ['20:00','ash','supp','Ashwagandha','1 tablet after dinner',0],
- ['20:30','w5','water','Water','Last big glass of the day',250],
+ ['20:15','dn','meal','Dinner','Light. Finish by 8:40',0],
+ ['20:45','money','work','Money hour','60 min on the current Mission step. Phone on silent',250],
+ ['21:00','ash','supp','Ashwagandha','1 tablet after dinner',0],
  ['21:45','mag','supp','Magnesium glycinate','Check the label for the elemental dose',0],
- ['22:00','screens','sleep','Screens off','Dim lights, no phone in bed',0],
- ['22:30','sleep','sleep','Sleep','7–8 hours. Muscle grows tonight',0]];
+ ['22:00','screens','sleep','Screens off · read 10 pages','Book, not phone',0],
+ ['22:30','sleep','sleep','Sleep','7+ hours. Muscle and fat loss both happen tonight',0]];
+const SUNDAY=[ // the only day off: one deep work block, long walk, family, weekly reset
+ ['07:00','wake','meal','Wake up (sleep in a little)','Warm water, then 5 soaked almonds + 2 walnuts',400],
+ ['07:30','walk','gym','Long walk 45–60 min','Easy pace, outdoors. Counts as cardio',400],
+ ['08:30','bf','meal','Breakfast',null,250],
+ ['09:30','money','work','Sunday power block (3 h)','Biggest Mission task of the week. Phone in another room',500],
+ ['12:30','w2','water','Water',null,300],
+ ['13:00','ln','meal','Lunch (weekly treat allowed from week 9)',null,0],
+ ['14:00','family','sleep','Family time / rest','Fully off. No guilt',0],
+ ['16:30','sn','meal','Evening snack',null,300],
+ ['18:00','review','work','Weekly review (20 min)','Check waist, weight, revenue, next week\'s step. Plan meals and gym bag',300],
+ ['19:30','dn','meal','Dinner','Light',0],
+ ['20:00','ash','supp','Ashwagandha','1 tablet after dinner',250],
+ ['21:45','mag','supp','Magnesium glycinate',null,0],
+ ['22:00','screens','sleep','Screens off · read 10 pages',null,0],
+ ['22:30','sleep','sleep','Sleep',null,0]];
 const EVENING=[
  ['06:00','wake','meal','Wake up','Warm water, then 5 soaked almonds + 2 walnuts',400],
  ['08:00','bf','meal','Breakfast',null,250],
@@ -89,9 +105,10 @@ const EVENING=[
 const MEALMAP={pg:PG,bf:BF,mm:MM,ln:LN,sn:SN,dn:DN};
 
 function timeline(gym,dayIdx,diet,isRest,waterL,supps){
-  const base=gym==='evening'?EVENING:MORNING;
+  let base=dayIdx===6?SUNDAY:gym==='evening'?EVENING:MORNING;
+  if(window.HUNTER_ASTHMA&&dayIdx!==6){const gi=base.findIndex(r=>r[1]==='gym');if(gi>0){const t=gym==='evening'?'17:15':'06:05';base=[...base.slice(0,gi),[t,'inhaler','supp','Asthma check before gym','Breathing check in the app. Carry your reliever inhaler; use it before exercise only if your doctor advised',0],...base.slice(gi)]}}
   const total=base.reduce((a,r)=>a+r[5],0),scale=waterL*1000/total;
-  return base.filter(r=>!(isRest&&(r[1]==='gym'||r[1]==='pg'))&&(supps||r[2]!=='supp')).map(([time,id,type,title,note,ml])=>{
+  return base.filter(r=>!(isRest&&(r[1]==='gym'||r[1]==='pg'))&&!(dayIdx===5&&r[1]==='money')&&(supps||r[2]!=='supp')).map(([time,id,type,title,note,ml])=>{
     const meal=MEALMAP[id]?MEALMAP[id][dayIdx][diet]:null;
     const water=ml?Math.round(ml*scale/50)*50:0;
     return {time,id,type,title,detail:meal||note||'',note:meal?note:'',ml:water};
@@ -110,5 +127,10 @@ const RULES={
 };
 function rulesFor(rank,w){if(rank==='E')return RULES['E'+(w<=4?0:w<=8?1:2)];return RULES[rank]}
 
-window.Diet={timeline,rulesFor,DIETS:['Pure veg','Veg + egg','Non-veg']};
+const VITALITY=['Lose the belly: fat around the middle lowers testosterone and blood flow. Fat loss is the biggest single help for stamina.',
+ 'Zinc foods daily: pumpkin seeds (1 tbsp), chana, rajma, eggs, curd, cashews.',
+ 'Blood-flow foods: beetroot, spinach and other leafy greens, pomegranate, garlic, a little dark chocolate.',
+ 'Limit alcohol and stop smoking. Both directly reduce sexual performance.',
+ 'Avoid "sex power" capsules and ayurvedic stamina pills sold online. Many are untested and some contain hidden drugs.'];
+window.Diet={timeline,rulesFor,VITALITY,DIETS:['Pure veg','Veg + egg','Non-veg']};
 })();

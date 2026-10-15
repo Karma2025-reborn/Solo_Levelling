@@ -1,4 +1,4 @@
-# Hunter System v3.0
+# Hunter System v4.1
 
 A 72-week E → S rank transformation app that installs on your phone and works offline.
 
@@ -11,6 +11,28 @@ A 72-week E → S rank transformation app that installs on your phone and works 
 | **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
 | **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
 | **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
+
+## v4.2
+- **Doctor review mode** (on by default, Settings): until your chest specialist clears you, sprints, burpees, jumps, kettlebell swings and hard runs are swapped for steady cardio at talk pace; timed rank-test runs are postponed. Strength work is unchanged.
+- **Health to-do** card at the top of Body: pulmonologist, repeat spirometry, asthma action plan, blood tests, BP, testosterone, urologist, flu vaccine.
+- Height and weight set from your spirometry report (178 cm, 76 kg) if you hadn't changed them.
+
+## v4.1
+- **Asthma mode** (Settings): daily green / yellow / red breathing check on Today that switches the workout to a light session or rest, an inhaler check before the gym in the timeline, asthma cues on hard cardio blocks, and an Asthma-safe training card in Body.
+- **1,282 foods**: everyday items, 130 Maharashtrian and Kolhapuri dishes (tambda / pandhra rassa, sukka, bhakri, pithla, zunka, usal, misal, puran poli…) and 1,014 Indian recipes from the Indian Nutrient Databank. The parser now understands several foods in one phrase ("pithla bhakri").
+- **Mission**: new quick-cash step (paid 1-on-1 sessions) right after choosing your product.
+- **Look your best** card in Body.
+
+Food data credit: Indian Nutrient Databank (INDB), Anuvaad Solutions. Vijayakumar A, Dubasi HB, Awasthi A, Jaacks LM. Development of an Indian Food Composition Database. Current Developments in Nutrition, 2024.
+
+## v4.0: simple mode, built around your real day
+
+Bottom bar: **Today · Body · Food · Mission · Stats**.
+
+- **Real schedule** in the Today timeline: 5:45 wake, gym 6:15–7:30, office, Money hour 8:45–9:45 pm (Mon–Fri), sleep 10:30. Sunday has its own plan: long walk, 3-hour power block, family, weekly review.
+- **Mission tab**: one step at a time on the path Futurnyx → your own company before the goal date. 25 steps in 5 phases. Money-hour timer, weekly 8-hour target, monthly revenue chart, and a parking lot of paused ideas.
+- **Body tab**: daily 5-minute vitality routine (pelvic floor) and a belly-fat protocol.
+- The full Mind and Wealth trackers are still in Settings → Advanced trackers, with all data kept.
 
 ## v3.0: three systems
 
@@ -84,9 +106,10 @@ Everything is stored on your phone only. Uninstalling the app or clearing Chrome
 | Workouts for every week and day, rank test targets | `js/program.js` |
 | Exercise instructions, mistakes, tips | `js/exercises.js` |
 | Meals, timeline times, water amounts, diet rules | `js/diet.js` |
-| Food database (calories and macros per serving) | `js/foods.js` |
+| Food database (calories and macros per serving) | `js/foods.js`, `js/foods_mh.js` (Marathi), `js/foods_indb.js` (INDB) |
 | Mind ranks, library, skill tracks, money lessons | `js/mind.js` |
 | Wealth ranks, missions, categories | `js/wealth.js` |
+| Mission steps, weekly rhythm, parking lot | `js/mission.js` |
 | Stick-figure animations | `js/figures.js` (each figure is pose A ↔ pose B) |
 | Screens, tracking, reminders, timer | `js/app.js` |
 | Colours and fonts | top of `css/app.css` |

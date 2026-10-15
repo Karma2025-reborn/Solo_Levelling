@@ -19,10 +19,12 @@ const DN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],DFULL=['Monday','Tuesday','
 const RANKS=['E','D','C','B','A','S'];
 
 /* ---------- profile ---------- */
-const DEF={wt:72,ht:170,start:ymd(mondayOf(new Date())),diet:1,gym:'morning',supps:true};
+const DEF={medHold:true,asthma:true,wt:72,ht:170,start:ymd(mondayOf(new Date())),diet:1,gym:'morning',supps:true};
 let prof=Object.assign({},DEF,S.get('profile',{}));
 if(!S.get('profile',null))S.set('profile',prof);
-const saveProf=()=>S.set('profile',prof);
+const saveProf=()=>{S.set('profile',prof);window.HUNTER_ASTHMA=!!prof.asthma};window.HUNTER_ASTHMA=!!prof.asthma;
+if(!S.get('spiroMig',false)){if(prof.ht===170)prof.ht=178;if(prof.wt===72)prof.wt=76;S.set('profile',prof);S.set('spiroMig',true)}
+if(S.get('mver',1)<2){const md=S.get('mdone',{}),nd={};Object.entries(md).forEach(([k,v])=>{nd[+k>=2?+k+1:k]=v});S.set('mdone',nd);S.set('mver',2)}
 const protein=()=>Math.round(prof.wt*1.6);
 const waterL=()=>Math.round(prof.wt*0.04*2)/2+0.5;   // +0.5 L for training
 function posOf(date){const st=mondayOf(parseYmd(prof.start));const days=Math.floor((new Date(date.getFullYear(),date.getMonth(),date.getDate())-st)/864e5);return {w:Math.max(1,Math.floor(days/7)+1),d:(date.getDay()+6)%7,days}}
@@ -40,7 +42,9 @@ function questsFor(ds){
   const tl=Diet.timeline(prof.gym,p.d,prof.diet,!!sess.rest,waterL(),prof.supps);
   const meals=tl.filter(t=>t.type==='meal'),mealsDone=meals.filter(t=>rec.tl[t.id]).length;
   const q=[];
-  if(!sess.rest)q.push({id:'work',t:`Complete: ${sess.t}`,s:'Finish the workout in Plan',auto:true,done:!!rec.workout});
+  const br=prof.asthma?rec.breath:null;
+  if(!sess.rest&&br==='y')q.push({id:'light',t:'Light day: 30 min easy walk + mobility',s:'Asthma yellow zone · no intervals or heavy sets',done:!!rec.q.light||!!rec.workout});
+  else if(!sess.rest&&br!=='r')q.push({id:'work',t:`Complete: ${sess.t}`,s:'Finish the workout in Body',auto:true,done:!!rec.workout});
   q.push({id:'water',t:`Drink ${waterL().toFixed(1)} L water`,s:`${(rec.water/1000).toFixed(2)} L so far`,auto:true,done:rec.water>=waterL()*1000});
   q.push({id:'meals',t:`Eat ${meals.length} planned meals`,s:`${mealsDone} of ${meals.length} ticked in the timeline`,auto:true,done:mealsDone>=meals.length-1});
   const ft=(typeof totals==='function')?totals(ds):{n:0,p:0};
@@ -48,6 +52,7 @@ function questsFor(ds){
   else q.push({id:'prot',t:`Hit ${protein()} g protein`,s:'Log meals in Food to track this automatically',done:!!rec.q.prot});
   q.push({id:'steps',t:`Walk ${Plan.stepsFor(p.w).toLocaleString('en-IN')} steps`,s:'Check your phone\'s step counter',done:!!rec.q.steps});
   q.push({id:'clean',t:'No sugar, no fried food',s:'No chai sugar, samosa, biscuits, cold drinks',done:!!rec.q.clean});
+  q.push({id:'pf',t:'Vitality routine (5 min)',s:'Pelvic floor, seated on the commute',done:!!rec.q.pf});
   q.push({id:'sleep',t:'Sleep by 10:30 pm',s:'Tick tomorrow morning if you made it',done:!!rec.q.sleep});
   return q;
 }
@@ -56,7 +61,8 @@ function hasData(ds){return localStorage.getItem(P+dayKey(ds))!==null}
 
 /* ---------- XP / level / streak ---------- */
 function allDays(){const out=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(P+'day:'))out.push(k.slice((P+'day:').length))}}catch(e){}return out.sort()}
-function xpTotal(){let xp=0;for(const ds of allDays()){const q=questsFor(ds);xp+=q.filter(x=>x.done).length*15;if(getDay(ds).workout)xp+=50;try{xp+=mindQuests(ds).filter(x=>x.done).length*10+wealthQuests(ds).filter(x=>x.done).length*10}catch(e){}}
+function xpTotal(){let xp=0;for(const ds of allDays()){const q=questsFor(ds);xp+=q.filter(x=>x.done).length*15;if(getDay(ds).workout)xp+=50;try{xp+=missionQuests(ds).filter(x=>x.done).length*10}catch(e){}}
+  try{xp+=Object.keys(S.get('mdone',{})).length*100}catch(e){}
   xp+=S.get('tests',[]).filter(t=>t.passed).length*500;return xp}
 function streak(){let n=0,d=new Date();if(dayScore(ymd(d))<0.8)d=addDays(d,-1);while(dayScore(ymd(d))>=0.8&&n<1000){n++;d=addDays(d,-1)}return n}
 
@@ -121,7 +127,8 @@ function renderToday(){
   $('diet-rules').innerHTML=`<h3 class="sub">${st.rank}-Rank diet rules</h3><ul class="plain">${Diet.rulesFor(st.rank,p.w).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
    <p class="cue">Portions: 1 phulka is palm-sized without ghee. 1 cup cooked rice is a fist. 1 bowl dal is about 200 ml. 2–3 tsp oil per person per day in total.</p>`;
   renderMiniDash();
-  renderSystems();
+  renderMissionToday();
+  renderBreath();
   header();
 }
 document.addEventListener('change',e=>{
@@ -157,6 +164,9 @@ function renderSession(){
   const isToday=selW===p.w&&selD===p.d;
   let h=`<section class="win"><div class="sys">Week ${selW} · ${DFULL[selD]}${isToday?' · Today':''}</div><div class="dayhead"><h2>${esc(sess.t)}</h2>${total?`<div class="total">${total}<span>min</span></div>`:''}</div>`;
   if(sess.note)h+=`<p class="note">${esc(sess.note)}</p>`;
+  if(prof.medHold&&!sess.rest)h+=`<p class="note hold">Doctor review pending: sprints, burpees, jumps and hard runs are swapped for steady cardio at a pace where you can still talk. Strength work stays. Turn this off in Settings once your chest doctor clears you.</p>`;
+  if(prof.medHold&&sess.test)h+=`<p class="note hold">Rank test postponed: do the strength parts only. Skip the timed run until your doctor clears you.</p>`;
+  if(prof.asthma&&!sess.rest)h+=`<p class="note asn">Asthma mode: warm up 12–15 min, gradually. Reliever inhaler in your bag. On a yellow day do the light session instead. Stop at any wheeze or chest tightness.</p>`;
   if(sess.test)h+=`<p class="note">Rank assessment. Enter your results in Status → Rank test.</p>`;
   if(total)h+=`<div class="bar">${sess.blocks.map(b=>`<i style="flex:${b.min};background:${COL[b.kind]}"></i>`).join('')}</div><div class="legend">${sess.blocks.map(b=>`<span style="--c:${COL[b.kind]}">${esc(b.label)} ${b.min} min</span>`).join('')}</div>`;
   if(!isToday&&!sess.rest)h+=`<p class="cue" style="margin-top:10px">Sets you log here are saved to today's date.</p>`;
@@ -166,7 +176,9 @@ function renderSession(){
   let n=0;
   sess.blocks.forEach(bl=>{
     const sec=document.createElement('section');sec.className='block';sec.style.setProperty('--c',COL[bl.kind]);
-    sec.innerHTML=`<div class="bhead"><h3>${esc(bl.label)}</h3><span class="min">${bl.min} min</span>${bl.how?`<span class="how">${esc(bl.how)}</span>`:''}</div>${bl.text?`<p class="btext">${esc(bl.text)}</p>`:''}`;
+    if(prof.medHold&&bl.items)bl={...bl,items:adaptItems(bl.items)};
+    const hard=!prof.medHold&&prof.asthma&&bl.items&&bl.items.some(([k])=>['sprints','intervals','jogint','run','burpee','kbswing','jumprope','climber','boxjump'].includes(k));
+    sec.innerHTML=`${hard?'<p class="cue asn2">Asthma: if your chest tightens, switch to steady easy cycling for the rest of this block.</p>':''}<div class="bhead"><h3>${esc(bl.label)}</h3><span class="min">${bl.min} min</span>${bl.how?`<span class="how">${esc(bl.how)}</span>`:''}</div>${bl.text?`<p class="btext">${esc(bl.text)}</p>`:''}`;
     if(bl.items){const g=document.createElement('div');g.className='grid';
       bl.items.forEach(([key,dose])=>{n++;const e=EX[key];if(!e)return;const c=document.createElement('article');c.className='card';
         const fg=document.createElement('button');fg.type='button';fg.className='fig';fg.setAttribute('aria-label','How to do '+e.n);fg.appendChild(Fig.svg(e.fig,HEX[bl.kind],e.n));fg.onclick=()=>openSheet(key);c.appendChild(fg);
@@ -348,13 +360,15 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(tRun)t
 /* =================================================================
    SETTINGS
    ================================================================= */
-function fillSettings(){$('s-age').value=prof.age||'';$('s-wt').value=prof.wt;$('s-ht').value=prof.ht;$('s-start').value=prof.start;$('s-diet').value=prof.diet;$('s-gym').value=prof.gym;$('s-supp').checked=!!prof.supps;renderGcal()}
+function fillSettings(){$('s-asthma').checked=!!prof.asthma;$('s-hold').checked=!!prof.medHold;$('s-age').value=prof.age||'';$('s-wt').value=prof.wt;$('s-ht').value=prof.ht;$('s-start').value=prof.start;$('s-diet').value=prof.diet;$('s-gym').value=prof.gym;$('s-supp').checked=!!prof.supps;renderGcal()}
 $('s-wt').onchange=()=>{const v=parseFloat($('s-wt').value);if(v>=35&&v<=200){prof.wt=v;saveProf();refresh()}};
 $('s-age').onchange=()=>{const v=parseInt($('s-age').value);if(v>=15&&v<=90){prof.age=v;saveProf();refresh()}};
 $('s-ht').onchange=()=>{const v=parseFloat($('s-ht').value);if(v>=120&&v<=220){prof.ht=v;saveProf();refresh()}};
 $('s-start').onchange=()=>{if($('s-start').value){prof.start=ymd(mondayOf(parseYmd($('s-start').value)));$('s-start').value=prof.start;saveProf();const p=posOf(new Date());selW=p.w;selD=p.d;refresh()}};
 $('s-diet').onchange=()=>{prof.diet=+$('s-diet').value;saveProf();refresh()};
 $('s-gym').onchange=()=>{prof.gym=$('s-gym').value;saveProf();renderGcal();refresh()};
+$('s-hold').onchange=()=>{prof.medHold=$('s-hold').checked;saveProf();toast(prof.medHold?'Doctor review mode on':'Doctor review mode off: full training unlocked');refresh()};
+$('s-asthma').onchange=()=>{prof.asthma=$('s-asthma').checked;saveProf();refresh()};
 $('s-supp').onchange=()=>{prof.supps=$('s-supp').checked;saveProf();renderGcal();refresh()};
 
 /* ---------- reminders ---------- */
@@ -446,8 +460,12 @@ function parseMeal(text){
     else if((m=/(\d+(?:\.\d+)?)\s*(g|gm|gms|gram|grams|ml)\b/.exec(seg)))q={grams:+m[1]};
     else if((m=/(^|\s)(\d+(?:\.\d+)?)(?=\s|$|x|[a-z])/.exec(seg)))q=+m[2];
     else{for(const w of seg.split(/\s+/))if(NUMW[w]!=null){q=NUMW[w];break}}
-    const hit=idx.find(([a])=>new RegExp('(^|[^a-z])'+a.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^a-z]|$)').test(seg));
-    if(!hit){if(seg.replace(/[^a-z]/g,'').length>1)missed.push(seg);return}
+    const rx=a=>new RegExp('(^|[^a-z])'+a.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^a-z]|$)');
+    let rest=seg,hits=[];
+    for(let guard=0;guard<4;guard++){const h=idx.find(([a])=>rx(a).test(rest));if(!h)break;hits.push(h);rest=rest.replace(rx(h[0]),' | ')}
+    if(!hits.length){if(seg.replace(/[^a-z]/g,'').length>1)missed.push(seg);return}
+    hits.slice(1).forEach(h=>found.push({f:h[1],q:1,src:seg}));
+    const hit=hits[0];
     const f=food(hit[1]);let qty=q==null?1:q;
     if(typeof qty==='object')qty=f.g?qty.grams/f.g:1;
     else{const pc=/^(\d+) pcs/.exec(f.u);if(pc&&q!=null&&!/\b(plate|pack|packet|serving)s?\b/.test(seg))qty=q/ +pc[1]}
@@ -892,11 +910,172 @@ function renderSystems(){
   $('mind-quests-today').innerHTML=questHTML(mq,'data-mq');
   $('wealth-quests-today').innerHTML=questHTML(wq,'data-wq');
 }
-$('systems').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)showView(b.dataset.go)});
+if($('systems'))$('systems').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)showView(b.dataset.go)});
 document.addEventListener('change',e=>{const t=e.target,ds=todayStr();
   if(t.dataset.mq){const r=getDay(ds);r.mq=r.mq||{};r.mq[t.dataset.mq]=t.checked;setDay(ds,r);refreshAll()}
   if(t.dataset.wq){const r=getDay(ds);r.wq=r.wq||{};r.wq[t.dataset.wq]=t.checked;setDay(ds,r);refreshAll()}});
 function refreshAll(){const v=S.get('view','today');if(v==='today')renderToday();if(v==='mind')renderMind();if(v==='wealth')renderWealth();header()}
+
+
+/* =================================================================
+   MISSION — one step at a time, 8 hours a week
+   ================================================================= */
+const STEPS=[];Mission.PHASES.forEach((ph,pi)=>ph.steps.forEach((st,si)=>STEPS.push({pi,si,ph,st})));
+function mDone(){return S.get('mdone',{})}
+function curStepIdx(){const d=mDone();const i=STEPS.findIndex((_,k)=>!d[k]);return i<0?STEPS.length:i}
+function mLog(){return S.get('mtime',[])}
+function mMin(ds){return mLog().filter(x=>x.date===ds).reduce((a,x)=>a+x.min,0)}
+function weekMin(){const mon=mondayOf(new Date());let t=0;for(let i=0;i<7;i++)t+=mMin(ymd(addDays(mon,i)));return t}
+function targetDate(){let t=S.get('target38',null);if(!t){const d=new Date();d.setFullYear(d.getFullYear()+3);t=ymd(d);S.set('target38',t)}return t}
+function missionQuests(ds){
+  const d=parseYmd(ds),wd=(d.getDay()+6)%7,r=getDay(ds),xq=r.xq||{},q=[];
+  if(wd<5)q.push({id:'mhour',t:'Money hour: 60 min on the Mission',s:`${mMin(ds)} min logged · 8:45–9:45 pm`,auto:true,done:mMin(ds)>=45});
+  if(wd===6)q.push({id:'mhour',t:'Sunday power block: 3 hours',s:`${mMin(ds)} min logged · 9:30–12:30`,auto:true,done:mMin(ds)>=150});
+  if(wd<6)q.push({id:'commute',t:'Commute learning',s:'Audiobook or podcast instead of social media',done:!!xq.commute});
+  q.push({id:'read10',t:'Read 10 pages before sleep',s:'Book, not phone',done:!!xq.read10});
+  return q;
+}
+let mRun=false,mStart=0,mInt=null;
+function renderMission(){
+  const ci=curStepIdx(),cur=STEPS[ci],t38=targetDate(),days=Math.max(0,Math.round((parseYmd(t38)-parseYmd(todayStr()))/864e5));
+  const phase=cur?cur.ph:Mission.PHASES[Mission.PHASES.length-1];
+  const done=Object.keys(mDone()).length;
+  const m=mon(todayStr()),rv=S.get('mrev',[]),thisM=rv.find(x=>x.m===m);
+  $('mission-hero').innerHTML=`<div class="sys">[ System ] · Main quest</div><b class="big-t">Futurnyx → your own company</b>
+   <div class="countdown"><div><b>${days.toLocaleString('en-IN')}</b><span class="k">days left</span></div><div><b>${done}/${STEPS.length}</b><span class="k">steps done</span></div><div><b>${(weekMin()/60).toFixed(1)}<small>/8 h</small></b><span class="k">this week</span></div></div>
+   <div class="phases5">${Mission.PHASES.map((p,i)=>`<div class="ph ${cur&&i<cur.pi?'ok':cur&&i===cur.pi?'on':''}"><b>${i+1}</b><span>${esc(p.target)}</span></div>`).join('')}</div>
+   <p class="cue">${esc(phase.n)} · ${esc(phase.months)} · goal: <b style="color:var(--ink)">${esc(phase.target)}</b>. This month: ${thisM?inr(thisM.rev):'₹0'} revenue.</p>`;
+  $('mission-step').innerHTML=cur?`<div class="sys">Step ${ci+1} of ${STEPS.length} · ${esc(cur.ph.n)}</div><h2 class="vh" style="margin-bottom:6px">${esc(cur.st[0])}</h2>
+    <p class="cue">${esc(cur.st[1])}</p><ol class="steps">${cur.st[2].map(x=>`<li>${esc(x)}</li>`).join('')}</ol>
+    <p class="note">Time: ${esc(cur.st[3])}. Only this step matters right now.</p>
+    <div class="t-actions left"><button type="button" class="primary" id="step-done">Step done → next</button></div>`
+   :`<h2 class="vh">All steps done</h2><p>You built your company. Set the next 3-year plan.</p>`;
+  const sd=$('step-done');if(sd)sd.onclick=()=>{const d=mDone();d[ci]=todayStr();S.set('mdone',d);toast('Step complete. +100 XP');renderMission();header()};
+  // roadmap
+  const d=mDone();
+  $('mission-road').innerHTML=Mission.PHASES.map((p,pi)=>`<details class="skill"${cur&&pi===cur.pi?' open':''}><summary><b>${esc(p.n)}</b><span class="cue">${esc(p.months)}</span><div class="mtrack"><i style="width:${p.steps.filter((_,si)=>d[STEPS.findIndex(x=>x.pi===pi&&x.si===si)]).length/p.steps.length*100}%;background:var(--stretch)"></i></div></summary>
+    <ol class="road">${p.steps.map((st,si)=>{const k=STEPS.findIndex(x=>x.pi===pi&&x.si===si);return `<li class="${d[k]?'ok':k===ci?'cur':''}"><b>${esc(st[0])}</b><span class="cue">${esc(st[3])}${d[k]?' · done '+d[k]:''}</span>${d[k]?`<button type="button" class="link" data-undo="${k}">Undo</button>`:''}</li>`}).join('')}</ol></details>`).join('');
+  // timer
+  drawMTimer();
+  // revenue
+  lineChart($('chart-mrev'),rv.slice().sort((a,b)=>a.m<b.m?-1:1).map(x=>({date:x.m+'-01',v:Math.round(x.rev/1000*10)/10})),'k','var(--stretch)','Futurnyx revenue (₹ thousand / month)',false);
+  if(!$('mr-m').value)$('mr-m').value=m;
+  $('week-plan').innerHTML=Mission.WEEK.map(([d,t,w])=>`<tr><td>${d}</td><td>${t}</td><td>${esc(w)}</td></tr>`).join('');
+  $('parking').innerHTML=Mission.PARKING.map(x=>`<li>${esc(x)}</li>`).join('');
+}
+function drawMTimer(){const el=$('m-time');if(!el)return;const s=mRun?Math.floor((Date.now()-mStart)/1000):0;el.textContent=`${Math.floor(s/3600)}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  $('m-start').textContent=mRun?'Stop & log':'Start money hour';$('m-today').textContent=`${mMin(todayStr())} min today`}
+$('m-start').onclick=()=>{
+  if(!mRun){mRun=true;mStart=Date.now();S.set('mrun',mStart);mInt=setInterval(drawMTimer,1000);wake(true)}
+  else{const min=Math.round((Date.now()-mStart)/60000);mRun=false;clearInterval(mInt);S.del('mrun');wake(false);
+    if(min>=1){const a=mLog();a.push({date:todayStr(),min});S.set('mtime',a);toast(`${min} min logged on the Mission`)}renderMission();header()}
+  drawMTimer();
+};
+$('m-add').onclick=()=>{const v=parseInt($('m-manual').value);if(v>0){const a=mLog();a.push({date:todayStr(),min:v});S.set('mtime',a);$('m-manual').value='';toast(`${v} min logged`);renderMission()}};
+(function resumeTimer(){const st=S.get('mrun',null);if(st&&Date.now()-st<6*3600e3){mRun=true;mStart=st;mInt=setInterval(drawMTimer,1000)}})();
+$('mr-form').addEventListener('submit',e=>{e.preventDefault();const m=$('mr-m').value,rev=parseFloat($('mr-rev').value)||0,stu=parseInt($('mr-stu').value)||0;if(!m)return;
+  const a=S.get('mrev',[]).filter(x=>x.m!==m);a.push({m,rev,stu});S.set('mrev',a);$('mr-rev').value='';$('mr-stu').value='';toast(`Saved ${m}`);renderMission()});
+$('mission-road').addEventListener('click',e=>{const u=e.target.closest('[data-undo]');if(!u)return;const d=mDone();delete d[u.dataset.undo];S.set('mdone',d);renderMission()});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset.xq){const ds=todayStr(),r=getDay(ds);r.xq=r.xq||{};r.xq[t.dataset.xq]=t.checked;setDay(ds,r);renderToday()}});
+
+/* ---------- Today: mission card ---------- */
+function renderMissionToday(){
+  const ci=curStepIdx(),cur=STEPS[ci];
+  $('mission-today').innerHTML=`<div class="diethead"><h3 class="sub mindc">Main quest</h3><button type="button" class="link" id="go-mission">Open Mission</button></div>
+   ${cur?`<b class="big-t">${esc(cur.st[0])}</b><span class="cue">Step ${ci+1} of ${STEPS.length} · ${esc(cur.ph.target)}</span>`:'<b class="big-t">All steps done</b>'}
+   <div class="quests" style="margin-top:10px">${questHTML(missionQuests(todayStr()),'data-xq')}</div>`;
+  $('go-mission').onclick=()=>showView('mission');
+}
+
+/* ---------- Body: vitality + belly protocol ---------- */
+function vitalityLevel(){const w=posOf(new Date()).w;return w<=2?0:w<=6?1:2}
+const VLEVELS=[
+ {h:'Weeks 1–2 · Find the muscle',sets:'3 sets × 10 slow squeezes, hold 3 s, relax 3 s'},
+ {h:'Weeks 3–6 · Build control',sets:'3 sets × 10 squeezes, hold 5 s, relax 5 s · then 10 quick flicks'},
+ {h:'Week 7+ · Endurance',sets:'3 sets × 10 squeezes, hold 10 s, relax 10 s · then 20 quick flicks'}];
+function renderBodyCards(){
+  renderCareCards();
+  renderHealth();
+  const lv=VLEVELS[vitalityLevel()];
+  $('vitality').innerHTML=`<details${S.get('vitOpen',true)?' open':''} id="vit-d"><summary><h3 class="sub" style="display:inline">Vitality routine · 5 min daily</h3></summary>
+   <p class="cue">Pelvic floor training improves control and stamina. Nobody can tell you're doing it, so do it seated on your commute.</p>
+   <p class="note"><b>${esc(lv.h)}</b><br>${esc(lv.sets)}</p>
+   <ol class="steps"><li><b>Find the muscle:</b> it's the one you'd use to stop urinating midstream. Only use that test once to identify it, not as an exercise.</li>
+   <li><b>Squeeze and lift</b> that muscle without tightening your stomach, thighs or buttocks. Keep breathing normally.</li>
+   <li><b>Relax fully</b> between squeezes for the same time you held. Learning to relax it matters as much as squeezing.</li>
+   <li><b>Finish with 5 slow belly breaths</b>, letting the pelvic floor drop and soften on each breath in.</li></ol>
+   <p class="cue">Also helps: glute bridges, squats and the cardio in your plan improve blood flow. Results usually show in 6–12 weeks.</p>
+   <h3 class="sub" style="margin-top:10px">Food for vitality</h3><ul class="plain">${Diet.VITALITY.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`;
+  $('vit-d').addEventListener('toggle',e=>S.set('vitOpen',e.target.open));
+  $('belly').innerHTML=`<details${S.get('bellyOpen',false)?' open':''} id="belly-d"><summary><h3 class="sub" style="display:inline">Belly-fat protocol</h3></summary>
+   <ol class="steps"><li><b>Deficit first.</b> Stay under the calorie target in Food 6 days out of 7. Training can't out-run a surplus.</li>
+   <li><b>No liquid sugar.</b> Chai without sugar, no juice, no cold drinks, no alcohol.</li>
+   <li><b>Protein every meal</b> (${protein()} g a day) so you lose fat, not muscle.</li>
+   <li><b>8,000–10,000 steps.</b> The 10–15 min walk after lunch adds about 1,500.</li>
+   <li><b>Sleep 7 hours.</b> Short sleep raises hunger and belly-fat storage.</li>
+   <li><b>Measure the waist every Sunday</b> in Stats. Expect about −1 cm every 2 weeks. The mirror lags behind the tape.</li></ol></details>`;
+  $('belly-d').addEventListener('toggle',e=>S.set('bellyOpen',e.target.open));
+}
+
+
+/* =================================================================
+   ASTHMA MODE · breathing check, care card, look-best card
+   ================================================================= */
+const BZ={g:['Green','Breathing normal, no cough or tightness','Train as planned. Warm up for 12–15 minutes and keep your reliever inhaler in your bag.'],
+ y:['Yellow','Some cough, wheeze or chest tightness, or a cold','Light day only: 30-minute easy walk and mobility. No intervals, sprints or heavy sets. Follow your asthma action plan.'],
+ r:['Red','Breathless at rest, or needing the reliever again and again','No exercise today. Use your reliever as prescribed and contact your doctor. If it doesn\'t help, you can\'t speak full sentences, or your lips turn blue, go to emergency care immediately.']};
+function renderBreath(){
+  const el=$('breath');if(!el)return;if(!prof.asthma){el.hidden=true;return}el.hidden=false;
+  const ds=todayStr(),r=getDay(ds),b=r.breath;
+  el.innerHTML=`${prof.medHold?'<p class="note hold" style="margin:0 0 10px">Doctor review pending: hard cardio is swapped for steady work.</p>':''}<div class="diethead"><h3 class="sub">Breathing check</h3><span class="cue">Asthma mode</span></div>
+   <div class="bz">${Object.entries(BZ).map(([k,v])=>`<button type="button" class="bzb bz-${k}" data-bz="${k}" aria-pressed="${b===k}"><b>${v[0]}</b><small>${esc(v[1])}</small></button>`).join('')}</div>
+   ${b?`<p class="note bzn-${b}">${esc(BZ[b][2])}</p>`:'<p class="cue">Tap how your breathing feels this morning before the gym.</p>'}`;
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-bz]');if(!b)return;const ds=todayStr(),r=getDay(ds);r.breath=r.breath===b.dataset.bz?null:b.dataset.bz;setDay(ds,r);renderToday()});
+function renderCareCards(){
+  const a=$('asthma');if(a){a.hidden=!prof.asthma;if(prof.asthma)a.innerHTML=`<details${S.get('asOpen',false)?' open':''} id="as-d"><summary><h3 class="sub" style="display:inline">Asthma-safe training</h3></summary>
+   <ol class="steps">
+    <li><b>Controller first.</b> If your doctor prescribed a daily (preventer) inhaler, take it every day, even when you feel fine. Well-controlled asthma lets you train hard.</li>
+    <li><b>Get an asthma action plan</b> from your doctor: what to do in green, yellow and red zones. The breathing check on Today follows the same idea.</li>
+    <li><b>Long, gradual warm-up:</b> 12–15 minutes, slowly building pace. This reduces exercise-induced tightening of the airways.</li>
+    <li><b>Reliever with you, always.</b> Ask your doctor whether to use it 15 minutes before exercise.</li>
+    <li><b>Prefer intervals over long hard efforts.</b> Short work bursts with easy recovery are usually better tolerated than continuous hard running.</li>
+    <li><b>Avoid triggers:</b> cold or very dry air, dust, smoke and traffic fumes. Cover nose and mouth on cold or dusty mornings and on the commute.</li>
+    <li><b>Breathing practice, 5 min daily:</b> slow belly breathing, in through the nose for 4, out through pursed lips for 6. It helps you stay calm when breathing feels tight.</li>
+    <li><b>Stop immediately</b> if you wheeze, feel chest tightness or can't talk in sentences. Use your reliever and rest. Don't push through.</li>
+    <li><b>Last week's chest cough</b> may have been an asthma flare. Mention it at your check-up and ask about a lung function (spirometry) test and a yearly flu shot.</li></ol>
+   <p class="cue">The program already avoids long hard runs early on. From D-Rank, swap running for cycling intervals on any yellow day.</p></details>`;
+   const d=$('as-d');if(d)d.addEventListener('toggle',e=>S.set('asOpen',e.target.open))}
+  const l=$('lookbest');if(l)l.innerHTML=`<details${S.get('lbOpen',false)?' open':''} id="lb-d"><summary><h3 class="sub" style="display:inline">Look your best</h3></summary>
+   <p class="cue">Attraction isn't only muscle. These make the biggest visible difference, roughly in order.</p>
+   <ol class="steps"><li><b>Small waist, wide shoulders.</b> Losing the belly does more for your look than any exercise. Then lateral raises, pull-ups and rows build the V-taper.</li>
+   <li><b>Posture.</b> Face pulls, rows and planks pull your shoulders back. Stand tall, chin level.</li>
+   <li><b>Grooming.</b> A fresh haircut every 4 weeks, a sharp beard line or clean shave, trimmed nails.</li>
+   <li><b>Skin.</b> Face wash, moisturiser and sunscreen every morning. Water and sleep show on your face.</li>
+   <li><b>Clothes that fit.</b> As you lose fat, buy 2–3 well-fitted shirts and jeans in your new size. Fit beats brand.</li>
+   <li><b>Teeth and smell.</b> Brush twice, floss, a dentist clean once a year, and a light fragrance.</li>
+   <li><b>Energy and confidence.</b> Sleep, steady progress and keeping your word to yourself build real confidence. People notice that most.</li></ol></details>`;
+  const lb=$('lb-d');if(lb)lb.addEventListener('toggle',e=>S.set('lbOpen',e.target.open));
+}
+
+
+/* =================================================================
+   DOCTOR-REVIEW MODE + HEALTH TO-DO
+   ================================================================= */
+const HARD={sprints:['cycle','steady, talk pace'],intervals:['treadmill','brisk incline walk, talk pace'],jogint:['treadmill','brisk incline walk, talk pace'],run:['walk','brisk walk, same time'],
+ burpee:['cycle','5 min steady'],climber:['cycle','3 min steady'],jumprope:['cycle','steady, talk pace'],boxjump:['stepup','3 × 10 each leg, controlled'],kbswing:['bridge','3 × 15']};
+function adaptItems(items){const out=[];items.forEach(([k,d])=>{const h=HARD[k];if(!h){out.push([k,d]);return}
+  const mins=(/(\d+)\s*min/.exec(d)||[])[1];const nd=h[1].includes('×')?h[1]:(mins?`${mins} min · ${h[1]}`:h[1]);
+  if(out.length&&out[out.length-1][0]===h[0])return;out.push([h[0],nd])});return out}
+const HEALTH=[['pulmo','See a pulmonologist (chest specialist) with your spirometry report'],['spiro','Repeat spirometry with correct age and a full 6-second blow'],['plan','Get a written asthma action plan and ask about a daily preventer inhaler'],
+ ['blood','Blood tests: HbA1c, lipid profile, liver function (LFT), thyroid (TSH), vitamin D, B12'],['bp','Blood pressure check'],['testo','Ask about a morning testosterone test (for energy and stamina)'],['uro','Urologist / andrologist visit for early finishing'],['flu','Yearly flu vaccine (asthma)']];
+function renderHealth(){const el=$('health');if(!el)return;const h=S.get('health',{});const n=HEALTH.filter(([k])=>h[k]).length;
+  el.innerHTML=`<details${S.get('hOpen',true)?' open':''} id="h-d"><summary><h3 class="sub" style="display:inline">Health to-do · ${n}/${HEALTH.length}</h3></summary>
+   <p class="cue">These protect the whole plan. Tick each when done.</p><div class="steps-ck">${HEALTH.map(([k,t])=>`<label class="q"><input type="checkbox" data-hl="${k}" ${h[k]?'checked':''}><span>${esc(t)}${h[k]?`<small>done ${h[k]}</small>`:''}</span></label>`).join('')}</div>
+   ${prof.medHold?`<p class="note hold">Doctor review mode is on. After the pulmonologist clears you for hard cardio, turn it off in Settings.</p>`:''}</details>`;
+  $('h-d').addEventListener('toggle',e=>S.set('hOpen',e.target.open));
+}
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset.hl){const h=S.get('health',{});if(t.checked)h[t.dataset.hl]=todayStr();else delete h[t.dataset.hl];S.set('health',h);renderHealth();if(t.dataset.hl==='pulmo'&&t.checked&&prof.medHold)toast('Cleared by your doctor? Turn off doctor review mode in Settings')}});
 
 /* ---------- toast ---------- */
 function toast(t){let el=$('toast');if(!el){el=document.createElement('div');el.id='toast';el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)}el.textContent=t;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('on'),2200)}
@@ -904,13 +1083,14 @@ function toast(t){let el=$('toast');if(!el){el=document.createElement('div');el.
 /* =================================================================
    NAV + BOOT
    ================================================================= */
-const VIEWS=['today','plan','food','mind','wealth','status','timer','settings'];
+const VIEWS=['today','plan','food','mission','mind','wealth','status','timer','settings'];
 function showView(v){VIEWS.forEach(x=>{$('v-'+x).hidden=x!==v;const tb=$('tab-'+x);if(tb)tb.setAttribute('aria-current',x===v||(v==='timer'&&x==='plan')?'page':'false')});S.set('view',v);window.scrollTo(0,0);
-  if(v==='today')renderToday();if(v==='plan')renderPlan();if(v==='food'){foodDate=todayStr();foodMeal=mealNow();renderFood()}if(v==='mind')renderMind();if(v==='wealth')renderWealth();if(v==='status')renderStatus();}
+  if(v==='today')renderToday();if(v==='plan')renderPlan();if(v==='food'){foodDate=todayStr();foodMeal=mealNow();renderFood()}if(v==='mind')renderMind();if(v==='wealth')renderWealth();if(v==='mission')renderMission();if(v==='plan')renderBodyCards();if(v==='status')renderStatus();}
 VIEWS.forEach(v=>{const tb=$('tab-'+v);if(tb)tb.addEventListener('click',()=>showView(v))});
-$('btn-settings').onclick=()=>showView('settings');$('open-timer').onclick=()=>showView('timer');
+$('btn-settings').onclick=()=>showView('settings');$('adv-mind').onclick=()=>showView('mind');$('adv-wealth').onclick=()=>showView('wealth');
+$('s-t38').value=targetDate();$('s-t38').onchange=()=>{if($('s-t38').value){S.set('target38',$('s-t38').value);toast('Target date saved')}};$('open-timer').onclick=()=>showView('timer');
 document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>showView(b.dataset.back));
-function refresh(){header();const v=S.get('view','today');if(v==='today')renderToday();if(v==='plan')renderPlan();if(v==='food')renderFood();if(v==='mind')renderMind();if(v==='wealth')renderWealth();if(v==='status')renderStatus()}
+function refresh(){header();const v=S.get('view','today');if(v==='today')renderToday();if(v==='plan')renderPlan();if(v==='food')renderFood();if(v==='mind')renderMind();if(v==='wealth')renderWealth();if(v==='mission')renderMission();if(v==='status')renderStatus()}
 
 let deferred=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('install').hidden=false});

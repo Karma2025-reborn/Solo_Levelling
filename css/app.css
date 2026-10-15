@@ -307,7 +307,7 @@ label.check input{width:20px!important;height:20px;accent-color:var(--cyan)}
 @keyframes rise{from{transform:translateY(20px) scale(.9);opacity:0}to{transform:none;opacity:1}}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--panel2);border:1px solid var(--cyan);color:var(--ink);padding:10px 16px;border-radius:4px;opacity:0;transition:.25s;z-index:40;pointer-events:none;font-weight:600}
 .toast.on{opacity:1;transform:translate(-50%,0)}
-.tabbar{grid-template-columns:repeat(6,1fr)}
+.tabbar{grid-template-columns:repeat(5,1fr)}
 @media (max-width:640px){
   .statgrid{grid-template-columns:repeat(2,1fr)}
   .weeks{grid-template-columns:repeat(8,1fr)}
@@ -445,3 +445,37 @@ details.skill summary::after{display:none}
 .statgrid .v{word-break:break-word}
 @media (max-width:640px){.acts{grid-template-columns:repeat(2,1fr)}ol.lessons{columns:1}.reqbars{grid-template-columns:1fr}}
 @media (max-width:420px){.appbar .lv{display:none}.sysbtn b{font-size:28px}}
+
+/* =========================== v4 MISSION / VITALITY =========================== */
+.tl.t-work{--c:var(--stretch)}
+.tl.t-work .tl-b b{color:var(--stretch)}
+.countdown{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.countdown div{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:10px;display:flex;flex-direction:column;gap:2px}
+.countdown b{font:700 26px/1 var(--display);color:var(--stretch);font-variant-numeric:tabular-nums}
+.countdown b small{font-size:13px;color:var(--muted)}
+.phases5{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:8px}
+.ph{border:1px solid var(--line);border-radius:4px;padding:6px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;min-width:0}
+.ph b{font:700 16px var(--display)}.ph span{font-size:10px;color:var(--muted);line-height:1.2}
+.ph.ok{border-color:var(--ok)}.ph.ok b{color:var(--ok)}
+.ph.on{border-color:var(--stretch);background:rgba(184,146,255,.08)}.ph.on b{color:var(--stretch)}
+ol.road{margin:10px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:8px}
+ol.road li{display:flex;flex-direction:column}
+ol.road li.ok b{color:var(--ok);text-decoration:line-through}
+ol.road li.cur b{color:var(--stretch)}
+#m-time{color:var(--stretch)}
+.vitwin{border-color:var(--stretch)}
+#vitality details summary,#belly details summary{list-style:none}
+
+/* =========================== ASTHMA =========================== */
+.bz{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.bzb{background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--c);border-radius:4px;color:var(--ink);padding:10px 8px;display:flex;flex-direction:column;gap:4px;text-align:left;cursor:pointer;font:inherit}
+.bzb b{font:700 16px var(--display);color:var(--c)}
+.bzb small{font-size:12px;color:var(--muted);line-height:1.3}
+.bz-g{--c:var(--ok)}.bz-y{--c:var(--gold)}.bz-r{--c:var(--red)}
+.bzb[aria-pressed="true"]{background:color-mix(in srgb,var(--c) 14%,var(--panel2));border-color:var(--c)}
+.note.bzn-g{border-left-color:var(--ok)}.note.bzn-y{border-left-color:var(--gold)}.note.bzn-r{border-left-color:var(--red);background:rgba(255,100,116,.08)}
+.note.asn{border-left-color:var(--cyan);background:rgba(83,200,255,.06)}
+.asn2{margin:0;color:var(--gold)!important}
+@media (max-width:420px){.bzb small{font-size:11px}}
+
+.note.hold{border-left-color:var(--red);background:rgba(255,100,116,.07)}
