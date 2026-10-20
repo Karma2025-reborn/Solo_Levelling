@@ -1,4 +1,4 @@
-# Hunter System v4.1
+# Hunter System v5.1
 
 A 72-week E → S rank transformation app that installs on your phone and works offline.
 
@@ -11,6 +11,19 @@ A 72-week E → S rank transformation app that installs on your phone and works 
 | **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
 | **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
 | **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
+
+## v5.1: 10-month plan, sharp cuts by month 6
+Two deadlines: **cuts by week 26** (fat loss, mostly diet) and **S-Rank strength by week 43** (10 months).
+
+| Rank | Weeks | Focus | Rank test (no timed runs, asthma-safe) |
+|---|---|---|---|
+| E | 1–8 | Machines → free weights, cut starts | 15 push-ups, 60 s plank, waist −3 cm |
+| D | 9–16 | Barbell 5 × 5, deficit | 22 push-ups, 90 s plank, squat 0.75× / bench 0.6× BW × 5, waist −6 cm |
+| C | 17–26 | V-taper + final cut push | **Week-26 cut check:** waist ÷ height ≤ 0.46, 30 push-ups, 2 pull-ups, squat 0.95× / bench 0.7× / deadlift 1.15× BW |
+| B | 27–35 | Hold the cut, build strength | 40 push-ups, 5 pull-ups, 8 dips, squat 1.1× / bench 0.8× / deadlift 1.35× BW, waist ÷ height ≤ 0.46 |
+| A | 36–43 | Peak strength | **S-Rank test:** 50 push-ups, 8 pull-ups, 12 dips, squat 1.25× / bench 0.9× / deadlift 1.5× BW, waist ÷ height ≤ 0.45 |
+
+Diet: about 500 kcal below maintenance until week 26, then about 250 (weeks 27–35) and 200 (36–43) so strength can climb. Protein 1.8 g per kg throughout. A **6-month cut check** card in Body compares your logged waist with where it should be on a straight line to the week-26 target.
 
 ## v4.2
 - **Doctor review mode** (on by default, Settings): until your chest specialist clears you, sprints, burpees, jumps, kettlebell swings and hard runs are swapped for steady cardio at talk pace; timed rank-test runs are postponed. Strength work is unchanged.

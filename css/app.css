@@ -479,3 +479,7 @@ ol.road li.cur b{color:var(--stretch)}
 @media (max-width:420px){.bzb small{font-size:11px}}
 
 .note.hold{border-left-color:var(--red);background:rgba(255,100,116,.07)}
+
+.cutrow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.cutrow div{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:8px;display:flex;flex-direction:column;gap:2px}
+.cutrow b{font:700 20px var(--display);font-variant-numeric:tabular-nums}

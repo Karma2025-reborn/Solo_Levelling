@@ -120,10 +120,10 @@ function aProgram(w,d,s,maintain){
 
 /* Rank assessment: last Saturday of each stage */
 function testDay(s){
-  return {t:`${s.to}-Rank Assessment`,test:s.to,blocks:[WARM,{kind:'core',label:'Assessment',min:45,text:`Test day. Do these fresh, in this order, with 5 minutes rest between tests: max push-ups in one set → max pull-ups → max dips → plank hold → 5-rep strength tests (if this rank needs them) → ${s.runKm} km run or walk for time. Then enter results in Status → Rank test.`},{...MOB}]};
+  return {t:`${s.to}-Rank Assessment`,test:s.to,blocks:[WARM,{kind:'core',label:'Assessment',min:45,text:`Test day. Do these fresh, in this order, with 5 minutes rest between tests: max push-ups in one set → max pull-ups → max dips → plank hold → 5-rep strength tests (if this rank needs them) → ${s.runKm} km run or walk for time. Then enter results in Status → Rank test. The timed run is optional with asthma and is not part of the rank test.`},{...MOB}]};
 }
 
-function program(w,d){
+function origProgram(w,d){
   const s=stageOf(w);
   if(s.rank!=='S'&&w===s.end&&d===5)return testDay(s);
   if(s.rank==='E')return eProgram(w,d);
@@ -134,8 +134,8 @@ function program(w,d){
   return aProgram(w,d,s,true);
 }
 
-/* Rank-up criteria. bw = body weight kg, ht = height cm, base = starting stats */
-function criteria(rank,bw,ht,base){
+/* Original 72-week criteria (kept for reference) */
+function criteria72(rank,bw,ht,base){
   const r=x=>Math.round(x*2)/2;
   const C={
    D:[['push','Push-ups, one set','reps',15,'>='],['plank','Plank hold','s',60,'>='],['run','2 km walk or jog','min',18,'<='],['waistDrop','Waist lost since start','cm',5,'>=']],
@@ -147,5 +147,40 @@ function criteria(rank,bw,ht,base){
   return (C[rank]||[]).map(([k,l,u,t,cmp])=>({k,l,u,t,cmp}));
 }
 
-window.Plan={STAGES,TOTAL,stageOf,program,stepsFor,criteria,ePhase,EPHASES,deloadOf};
+
+/* =====================================================================
+   6-MONTH FAST TRACK (26 weeks). Each fast stage replays its original
+   stage at speed: week w maps proportionally onto the 72-week template.
+   ===================================================================== */
+const FAST=[
+ {rank:'E',to:'D',start:1,end:8,name:'E-Rank · Awakening',goal:'Machines, then free weights. Fix the food. Cut phase starts now.',runKm:2},
+ {rank:'D',to:'C',start:9,end:16,name:'D-Rank · Hunter Training',goal:'Barbell strength 5 × 5 while the deficit keeps the belly shrinking.',runKm:2},
+ {rank:'C',to:'B',start:17,end:26,name:'C-Rank · Gate Raids',goal:'V-taper training + final cut push: sharp cuts by week 26.',runKm:2},
+ {rank:'B',to:'A',start:27,end:35,name:'B-Rank · Shadow Extraction',goal:'Hold the cuts, push strength up. Eat close to maintenance.',runKm:2},
+ {rank:'A',to:'S',start:36,end:43,name:'A-Rank · Monarch Ascension',goal:'Peak strength and conditioning. S-Rank test at week 43 (10 months).',runKm:2}
+];
+const S_FAST={rank:'S',to:null,start:44,end:9999,name:'S-Rank · Shadow Monarch',goal:'Maintain the look and keep raising your numbers. Repeat the A-Rank cycle.',runKm:2};
+function fastStage(w){return FAST.find(s=>w>=s.start&&w<=s.end)||S_FAST}
+function origWeek(w){const f=fastStage(w);if(f.rank==='S')return 73+((w-44)%16+16)%16;const o=STAGES[FAST.indexOf(f)];
+  return o.start+Math.round((w-f.start)/(f.end-f.start)*(o.end-o.start))}
+function program(w,d){const f=fastStage(w);if(f.rank!=='S'&&w===f.end&&d===5)return testDay(f);return origProgram(origWeek(w),d)}
+function fastSteps(w){return w<=1?7000:w<=2?8000:w<=5?9000:10000}
+function fastDeload(w){return deloadOf(origWeek(w),stageOf(origWeek(w)))&&fastStage(w).rank!=='A'}
+function fastEPhase(w){return w<=3?0:w<=6?1:2}
+const FAST_EPHASES=['Machines (weeks 1–3)','Free weights (weeks 4–6)','Heavier (weeks 7–8)'];
+
+/* 10-month rank tests (S at week 43). Achievable for a beginner with asthma. No timed runs. */
+function criteria(rank,bw,ht){
+  const r=x=>Math.round(x*2)/2;
+  const C={
+   D:[['push','Push-ups, one set','reps',15,'>='],['plank','Plank hold','s',60,'>='],['waistDrop','Waist lost since start','cm',3,'>=']],
+   C:[['push','Push-ups, one set','reps',22,'>='],['plank','Plank hold','s',90,'>='],['squat5','Squat × 5','kg',r(bw*0.75),'>='],['bench5','Bench press × 5','kg',r(bw*0.6),'>='],['waistDrop','Waist lost since start','cm',6,'>=']],
+   B:[['push','Push-ups, one set','reps',30,'>='],['pull','Pull-ups (bodyweight)','reps',2,'>='],['squat5','Squat × 5','kg',r(bw*0.95),'>='],['bench5','Bench press × 5','kg',r(bw*0.7),'>='],['dead5','Deadlift × 5','kg',r(bw*1.15),'>='],['whtr','Week-26 cut check: waist ÷ height','ratio',0.46,'<=']],
+   A:[['push','Push-ups, one set','reps',40,'>='],['pull','Pull-ups','reps',5,'>='],['dips','Dips','reps',8,'>='],['squat5','Squat × 5','kg',r(bw*1.1),'>='],['bench5','Bench press × 5','kg',r(bw*0.8),'>='],['dead5','Deadlift × 5','kg',r(bw*1.35),'>='],['whtr','Waist ÷ height (hold the cut)','ratio',0.46,'<=']],
+   S:[['push','Push-ups, one set','reps',50,'>='],['pull','Pull-ups','reps',8,'>='],['dips','Dips','reps',12,'>='],['squat5','Squat × 5','kg',r(bw*1.25),'>='],['bench5','Bench press × 5','kg',r(bw*0.9),'>='],['dead5','Deadlift × 5','kg',r(bw*1.5),'>='],['whtr','Waist ÷ height (≈ 80 cm waist at 178 cm)','ratio',0.45,'<=']]
+  };
+  return (C[rank]||[]).map(([k,l,u,t,cmp])=>({k,l,u,t,cmp}));
+}
+
+window.Plan={STAGES:FAST,TOTAL:43,CUT_WEEK:26,stageOf:fastStage,program,stepsFor:fastSteps,criteria,ePhase:fastEPhase,EPHASES:FAST_EPHASES,deloadOf:(w)=>fastDeload(w),origWeek};
 })();

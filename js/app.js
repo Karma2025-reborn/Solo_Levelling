@@ -25,7 +25,7 @@ if(!S.get('profile',null))S.set('profile',prof);
 const saveProf=()=>{S.set('profile',prof);window.HUNTER_ASTHMA=!!prof.asthma};window.HUNTER_ASTHMA=!!prof.asthma;
 if(!S.get('spiroMig',false)){if(prof.ht===170)prof.ht=178;if(prof.wt===72)prof.wt=76;S.set('profile',prof);S.set('spiroMig',true)}
 if(S.get('mver',1)<2){const md=S.get('mdone',{}),nd={};Object.entries(md).forEach(([k,v])=>{nd[+k>=2?+k+1:k]=v});S.set('mdone',nd);S.set('mver',2)}
-const protein=()=>Math.round(prof.wt*1.6);
+const protein=()=>Math.round(prof.wt*1.8);
 const waterL=()=>Math.round(prof.wt*0.04*2)/2+0.5;   // +0.5 L for training
 function posOf(date){const st=mondayOf(parseYmd(prof.start));const days=Math.floor((new Date(date.getFullYear(),date.getMonth(),date.getDate())-st)/864e5);return {w:Math.max(1,Math.floor(days/7)+1),d:(date.getDay()+6)%7,days}}
 const todayStr=()=>ymd(new Date());
@@ -124,11 +124,12 @@ function renderToday(){
   $('timeline').innerHTML=tl.map(t=>{const done=!!rec.tl[t.id];const [h,m]=t.time.split(':').map(Number);const past=h*60+m<hm;
     return `<li class="tl t-${t.type}${done?' done':''}${!done&&past?' late':''}"><label><input type="checkbox" data-tl="${t.id}" data-ml="${t.ml}" ${done?'checked':''}>
       <time>${t.time}</time><span class="tl-b"><b>${esc(t.title)}</b>${t.detail?`<span>${esc(t.detail)}</span>`:''}${t.note?`<small>${esc(t.note)}</small>`:''}</span>${t.ml?`<em>${t.ml} ml</em>`:''}</label></li>`}).join('');
-  $('diet-rules').innerHTML=`<h3 class="sub">${st.rank}-Rank diet rules</h3><ul class="plain">${Diet.rulesFor(st.rank,p.w).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
+  $('diet-rules').innerHTML=`<h3 class="sub">${st.rank}-Rank diet rules</h3><ul class="plain">${Diet.rulesFor(st.rank,Plan.origWeek(p.w)).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
    <p class="cue">Portions: 1 phulka is palm-sized without ghee. 1 cup cooked rice is a fist. 1 bowl dal is about 200 ml. 2–3 tsp oil per person per day in total.</p>`;
   renderMiniDash();
   renderMissionToday();
   renderBreath();
+  renderCut();
   header();
 }
 document.addEventListener('change',e=>{
@@ -142,7 +143,7 @@ document.querySelectorAll('[data-water]').forEach(b=>b.addEventListener('click',
    PLAN
    ================================================================= */
 let selW=1,selD=0;
-function stageList(){return [...Plan.STAGES,{rank:'S',start:73,end:76,name:'S-Rank · Shadow Monarch',goal:'Maintain. Repeat the A-Rank cycle with your new numbers.'}]}
+function stageList(){return [...Plan.STAGES,{rank:'S',start:44,end:47,name:'S-Rank · Shadow Monarch',goal:'Maintain. Repeat the A-Rank cycle with your new numbers.'}]}
 function renderPlan(){
   const st=Plan.stageOf(selW),stages=stageList(),cur=posOf(new Date()).w;
   $('ranks').innerHTML=stages.map(s=>`<button type="button" data-st="${s.start}" aria-pressed="${s.rank===st.rank}"><b>${s.rank}</b><span>W${s.start}${s.rank==='S'?'+':'–'+s.end}</span></button>`).join('');
@@ -440,7 +441,7 @@ function allFoods(){return [...Object.values(FOODS),...Object.values(customFoods
 function foodLog(ds){return S.get(foodKey(ds),[])}
 function setFoodLog(ds,a){S.set(foodKey(ds),a)}
 function totals(ds){const t={kcal:0,p:0,c:0,f:0,fi:0,n:0};foodLog(ds).forEach(e=>{const f=food(e.f);if(!f)return;t.n++;['kcal','p','c','f','fi'].forEach(m=>t[m]+=f[m]*e.q)});return t}
-function stageAdj(){const r=Plan.stageOf(posOf(new Date()).w).rank;return {E:-500,D:-300,C:200,B:-400,A:0,S:0}[r]||0}
+function stageAdj(){const w=posOf(new Date()).w;if(w<=26)return -500;const r=Plan.stageOf(w).rank;return {B:-250,A:-200,S:0}[r]||0}
 function targets(){
   const age=prof.age||30,bmr=10*prof.wt+6.25*prof.ht-5*age+5,tdee=bmr*1.5;
   const kcal=Math.round((tdee+stageAdj())/50)*50,p=protein(),f=Math.round(kcal*0.25/9),c=Math.max(0,Math.round((kcal-p*4-f*9)/4));
@@ -1076,6 +1077,28 @@ function renderHealth(){const el=$('health');if(!el)return;const h=S.get('health
   $('h-d').addEventListener('toggle',e=>S.set('hOpen',e.target.open));
 }
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset.hl){const h=S.get('health',{});if(t.checked)h[t.dataset.hl]=todayStr();else delete h[t.dataset.hl];S.set('health',h);renderHealth();if(t.dataset.hl==='pulmo'&&t.checked&&prof.medHold)toast('Cleared by your doctor? Turn off doctor review mode in Settings')}});
+
+
+/* =================================================================
+   6-MONTH CUT CHECK (week 26): waist target on a straight line
+   ================================================================= */
+function cutCheck(){
+  const log=latestLog().filter(r=>r.waist);const tgt=Math.round(0.45*prof.ht);
+  const w=posOf(new Date()).w,left=Math.max(0,26-w+1);
+  if(!log.length)return {tgt,w,left,none:true};
+  const start=log[0].waist,cur=log[log.length-1].waist;
+  const exp=Math.round((start-(start-tgt)*Math.min(1,(w-1)/26))*10)/10;
+  return {tgt,w,left,start,cur,exp,diff:Math.round((cur-exp)*10)/10};
+}
+function renderCut(){
+  const el=$('cutcheck');if(!el)return;const c=cutCheck();
+  if(c.w>30){el.hidden=true;return}el.hidden=false;
+  el.innerHTML=`<div class="diethead"><h3 class="sub">6-month cut check</h3><span class="cue">${c.left>0?`${c.left} weeks to week 26`:'Week 26 reached'}</span></div>
+   ${c.none?`<p class="cue">Log your waist in Stats → Body log to start tracking. Target: <b style="color:var(--ink)">${c.tgt} cm</b> by week 26 (waist ÷ height 0.45, when abs usually show).</p>`:
+   `<div class="cutrow"><div><span class="k">Start</span><b>${c.start}</b></div><div><span class="k">Now</span><b>${c.cur}</b></div><div><span class="k">Should be</span><b>${c.exp}</b></div><div><span class="k">Target</span><b>${c.tgt}</b></div></div>
+    <div class="mtrack lg"><i style="width:${Math.max(2,Math.min(100,(c.start-c.cur)/(c.start-c.tgt)*100))}%;background:${c.diff<=0.5?'var(--ok)':'var(--cardio)'}"></i></div>
+    <p class="note ${c.diff<=0.5?'':'hold'}">${c.diff<=0.5?`On track for sharp cuts by week 26. Keep the deficit 6 days a week.`:`${c.diff} cm behind schedule. Check the Food tab: most likely extra rice/roti, chai sugar or snacks. Add a 10-minute walk after dinner.`}</p>`}`;
+}
 
 /* ---------- toast ---------- */
 function toast(t){let el=$('toast');if(!el){el=document.createElement('div');el.id='toast';el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)}el.textContent=t;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('on'),2200)}
