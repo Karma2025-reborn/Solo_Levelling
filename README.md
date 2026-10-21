@@ -1,4 +1,4 @@
-# Hunter System v5.1
+# Hunter System v5.3
 
 A 72-week E → S rank transformation app that installs on your phone and works offline.
 
@@ -11,6 +11,19 @@ A 72-week E → S rank transformation app that installs on your phone and works 
 | **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
 | **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
 | **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
+
+## v5.3: export for analysis
+Settings → **Export for analysis** (pick 14 / 30 / 90 days or everything):
+- **Copy summary for chat**: a compact text report (daily food, macros, workouts, cardio, breathing, body log, lift progress, last 7 days of food) to paste into Claude.
+- **Share analysis file (.json)**: the full structured data; on Android it opens the share menu so you can send it straight to the Claude app, WhatsApp or Drive.
+- **Daily table (.csv)**: one row per day for Excel or Google Sheets.
+The **backup file** is still separate: use it only to restore the app.
+
+## v5.2: cardio, core and mobility logging
+- **Cardio** cards (walk, treadmill, cycle, intervals, run, sprints) have **Log cardio**: minutes, distance, average heart rate, effort (talk test) and, in asthma mode, how your breathing felt. Your fat-burn heart-rate zone is shown.
+- **Core** cards have **Log sets** (reps) or **Log hold times** (seconds for planks), with last time shown in grey.
+- **Stretch / Mobility** blocks have a **Mark done** button with minutes and your tightest area.
+- **Stats → Cardio · Core · Mobility**: this week against targets (150 min cardio, about 18 core sets, 60 min mobility), an 8-week chart, breathing flags, and **Log extra activity** for walks, Sunday walks, yoga or sport outside the gym.
 
 ## v5.1: 10-month plan, sharp cuts by month 6
 Two deadlines: **cuts by week 26** (fat loss, mostly diet) and **S-Rank strength by week 43** (10 months).

@@ -256,6 +256,7 @@
 <!-- ======================= STATUS ======================= -->
 <section id="v-status" class="view" hidden>
   <section class="win dash" id="dash"></section>
+  <section class="win" id="actlog"></section>
   <section class="win">
     <details><summary><h3 class="sub" style="display:inline">Stat check (every 2 weeks, 15 min)</h3></summary>
     <p class="cue">Do these fresh, before a workout, 3 min rest between each. Fill in only what you did. Resting heart rate: count your pulse for 30 s right after waking, then double it.</p>
@@ -369,6 +370,18 @@
     <p class="cue">The full Mind and Wealth systems are still here with all your data. Use them later when you have more time.</p>
     <div class="t-actions left"><button type="button" class="ghost" id="adv-mind">Open Mind (INT)</button><button type="button" class="ghost" id="adv-wealth">Open Wealth</button></div>
   </section>
+  <section class="win" id="exportwin">
+    <h3 class="sub">Export for analysis</h3>
+    <p class="cue">Send your data to Claude (or a spreadsheet) to check what is working. Includes food and macros per day, workouts, sets, cardio, core, mobility, breathing, water, waist and weight, rank tests and Mission hours.</p>
+    <label class="exrange"><span>Period</span><select id="ex-range"><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="0">Everything</option></select></label>
+    <div class="t-actions left exbtns">
+      <button type="button" id="ex-copy" class="primary">Copy summary for chat</button>
+      <button type="button" id="ex-file" class="ghost">Share analysis file (.json)</button>
+      <button type="button" id="ex-csv" class="ghost">Daily table (.csv)</button>
+    </div>
+    <textarea id="ex-text" class="extext" rows="8" hidden aria-label="Export summary"></textarea>
+    <p id="ex-msg" class="cue" role="status"></p>
+  </section>
   <section class="win">
     <h3 class="sub">Backup</h3>
     <p class="cue">Your data lives only on this phone. Save a backup every couple of weeks.</p>
@@ -387,7 +400,7 @@
     </ul>
     <button type="button" id="reset" class="danger" style="margin-top:12px">Erase all progress</button>
   </section>
-  <p class="cue center">Hunter System · v5.1 · works offline once installed</p>
+  <p class="cue center">Hunter System · v5.3 · works offline once installed</p>
 </section>
 </div>
 

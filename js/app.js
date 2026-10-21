@@ -69,10 +69,10 @@ function streak(){let n=0,d=new Date();if(dayScore(ymd(d))<0.8)d=addDays(d,-1);w
 /* ---------- workout log ---------- */
 const wlKey=(ds,k)=>`wl:${ds}:${k}`;
 function hist(k){return S.get('hist:'+k,[])}
-function saveHist(k,ds,sets){
+function saveHist(k,ds,sets,u){
   const h=hist(k).filter(x=>x.date!==ds);
   const valid=sets.filter(s=>s.reps>0);
-  if(valid.length){const e1=Math.max(...valid.map(s=>(s.kg||0)*(1+s.reps/30)));h.push({date:ds,sets:valid,e1:Math.round(e1*10)/10})}
+  if(valid.length){const e1=Math.max(...valid.map(s=>(s.kg||0)*(1+s.reps/30)));const o={date:ds,sets:valid,e1:Math.round(e1*10)/10};if(u)o.u=u;h.push(o)}
   h.sort((a,b)=>a.date<b.date?-1:1);S.set('hist:'+k,h);
 }
 function lastBefore(k,ds){const h=hist(k).filter(x=>x.date<ds);return h[h.length-1]}
@@ -180,16 +180,18 @@ function renderSession(){
     if(prof.medHold&&bl.items)bl={...bl,items:adaptItems(bl.items)};
     const hard=!prof.medHold&&prof.asthma&&bl.items&&bl.items.some(([k])=>['sprints','intervals','jogint','run','burpee','kbswing','jumprope','climber','boxjump'].includes(k));
     sec.innerHTML=`${hard?'<p class="cue asn2">Asthma: if your chest tightens, switch to steady easy cycling for the rest of this block.</p>':''}<div class="bhead"><h3>${esc(bl.label)}</h3><span class="min">${bl.min} min</span>${bl.how?`<span class="how">${esc(bl.how)}</span>`:''}</div>${bl.text?`<p class="btext">${esc(bl.text)}</p>`:''}`;
+    if(bl.kind==='stretch')sec.appendChild(mobLogger(bl,ds));
     if(bl.items){const g=document.createElement('div');g.className='grid';
       bl.items.forEach(([key,dose])=>{n++;const e=EX[key];if(!e)return;const c=document.createElement('article');c.className='card';
         const fg=document.createElement('button');fg.type='button';fg.className='fig';fg.setAttribute('aria-label','How to do '+e.n);fg.appendChild(Fig.svg(e.fig,HEX[bl.kind],e.n));fg.onclick=()=>openSheet(key);c.appendChild(fg);
-        const ns=bl.kind==='strength'?setsIn(dose):0;
+        const mode=logMode(bl.kind,key,dose);const ns=(mode==='sets'||mode==='reps'||mode==='secs')?setsIn(dose):0;
         const last=lastBefore(key,ds);
         c.insertAdjacentHTML('beforeend',`<div class="info"><div class="top"><span class="tag">${esc(e.m)}</span><span class="num">${String(n).padStart(2,'0')}</span></div>
           <h4>${esc(e.n)}</h4><div class="dose">${esc(dose)}</div>
-          ${last?`<p class="cue last">Last: ${last.sets.map(s=>`${s.kg?s.kg+'×':''}${s.reps}`).join(', ')}</p>`:''}
-          <div class="cardbtns"><button type="button" class="link" data-how="${key}">How to</button>${ns?`<button type="button" class="link" data-logt="${key}">Log sets</button>`:''}</div></div>`);
-        if(ns)c.appendChild(logger(key,ns,ds,last));
+          ${mode==='cardio'?cardioLast(key,ds):last?`<p class="cue last">Last: ${last.sets.map(s=>`${s.kg?s.kg+'×':''}${s.reps}${last.u==='s'?' s':''}`).join(', ')}</p>`:''}
+          <div class="cardbtns"><button type="button" class="link" data-how="${key}">How to</button>${ns?`<button type="button" class="link" data-logt="${key}">${mode==='secs'?'Log hold times':'Log sets'}</button>`:''}${mode==='cardio'?`<button type="button" class="link" data-logt="${key}">Log cardio</button>`:''}</div></div>`);
+        if(ns)c.appendChild(logger(key,ns,ds,last,mode));
+        if(mode==='cardio')c.appendChild(cardioLogger(key,ds,dose,bl.label));
         g.appendChild(c)});
       sec.appendChild(g)}
     root.appendChild(sec);
@@ -198,9 +200,14 @@ function renderSession(){
   root.insertAdjacentHTML('beforeend',`<section class="win finish"><button type="button" class="primary big" id="finish" ${done?'disabled':''}>${done?'Workout logged for today ✓':'Finish workout'}</button><p class="cue">Logs your sets, ticks today's workout quest and adds 50 XP.</p></section>`);
   $('finish').onclick=()=>{const r=getDay(ds);r.workout={w:selW,d:selD,t:sess.t,at:Date.now()};setDay(ds,r);toast('Workout complete. +50 XP');renderSession();header()};
 }
-function logger(key,ns,ds,last){
+function logger(key,ns,ds,last,mode){
+  mode=mode||'sets';
   const cur=S.get(wlKey(ds,key),[]);
   const box=document.createElement('div');box.className='logger';box.hidden=!cur.length;box.dataset.lg=key;
+  if(mode!=='sets'){let rows='';const u=mode==='secs'?'sec':'reps';
+    for(let i=0;i<ns;i++){const v=cur[i]||{},ph=last&&last.sets[i]?last.sets[i]:{};
+      rows+=`<div class="setrow two"><span>Set ${i+1}</span><input type="number" inputmode="numeric" step="1" min="0" placeholder="${ph.reps??u}" value="${v.reps??''}" data-k="${key}" data-i="${i}" data-f="reps" data-u="${mode==='secs'?'s':''}" aria-label="Set ${i+1} ${u}"><span class="x">${u}</span></div>`}
+    box.innerHTML=rows+`<p class="cue">${mode==='secs'?'Seconds you held with good form. Stop when your hips sag.':'Reps with good form. Beat last time by 1–2.'}</p>`;return box}
   let rows='';for(let i=0;i<ns;i++){const v=cur[i]||{},ph=last&&last.sets[i]?last.sets[i]:{};
     rows+=`<div class="setrow"><span>Set ${i+1}</span><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="${ph.kg??'kg'}" value="${v.kg??''}" data-k="${key}" data-i="${i}" data-f="kg" aria-label="Set ${i+1} weight kg"><span class="x">kg ×</span><input type="number" inputmode="numeric" step="1" min="0" placeholder="${ph.reps??'reps'}" value="${v.reps??''}" data-k="${key}" data-i="${i}" data-f="reps" aria-label="Set ${i+1} reps"></div>`}
   const tip=last?`<p class="cue">Grey numbers are last time. Beat them by 1 rep or a little weight.</p>`:`<p class="cue">Bodyweight exercise? Leave kg empty.</p>`;
@@ -213,7 +220,7 @@ $('day').addEventListener('click',e=>{
 $('day').addEventListener('change',e=>{
   const t=e.target;if(!t.dataset.k)return;const ds=todayStr(),k=t.dataset.k;
   const arr=S.get(wlKey(ds,k),[]);const i=+t.dataset.i;arr[i]=arr[i]||{};const v=parseFloat(t.value);arr[i][t.dataset.f]=isNaN(v)?null:v;
-  S.set(wlKey(ds,k),arr);saveHist(k,ds,arr.filter(Boolean).map(s=>({kg:s.kg||0,reps:s.reps||0})));
+  S.set(wlKey(ds,k),arr);saveHist(k,ds,arr.filter(Boolean).map(s=>({kg:s.kg||0,reps:s.reps||0})),t.dataset.u);
 });
 
 /* ---------- exercise sheet ---------- */
@@ -246,6 +253,7 @@ function evalTest(rank,res){
 }
 function renderStatus(){
   renderDash();
+  renderAct();
   const r=earnedRank(),nr=nextRank(),tests=S.get('tests',[]);
   const lastT=tests.filter(t=>t.rank===nr).slice(-1)[0];
   const ev=nr?evalTest(nr,lastT?lastT.res:{}):[];
@@ -422,6 +430,7 @@ function checkReminders(){
 /* ---------- backup ---------- */
 function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
 function allData(){const o={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(P))o[k]=localStorage.getItem(k)}}catch(e){}return o}
+setTimeout(()=>{try{initExport()}catch(e){console.error(e)}},0);
 $('export').onclick=()=>{download(new Blob([JSON.stringify({app:'hunter',v:2,saved:new Date().toISOString(),data:allData()})],{type:'application/json'}),`hunter-backup-${todayStr()}.json`);$('backup-msg').textContent='Backup saved to your Downloads.'};
 $('import').onchange=async e=>{const f=e.target.files[0];if(!f)return;
   try{const j=JSON.parse(await f.text());if(j.app!=='hunter'||!j.data)throw 0;Object.entries(j.data).forEach(([k,v])=>{if(k.startsWith(P))localStorage.setItem(k,v)});$('backup-msg').textContent='Backup restored. Reloading…';setTimeout(()=>location.reload(),700)}
@@ -1098,6 +1107,183 @@ function renderCut(){
    `<div class="cutrow"><div><span class="k">Start</span><b>${c.start}</b></div><div><span class="k">Now</span><b>${c.cur}</b></div><div><span class="k">Should be</span><b>${c.exp}</b></div><div><span class="k">Target</span><b>${c.tgt}</b></div></div>
     <div class="mtrack lg"><i style="width:${Math.max(2,Math.min(100,(c.start-c.cur)/(c.start-c.tgt)*100))}%;background:${c.diff<=0.5?'var(--ok)':'var(--cardio)'}"></i></div>
     <p class="note ${c.diff<=0.5?'':'hold'}">${c.diff<=0.5?`On track for sharp cuts by week 26. Keep the deficit 6 days a week.`:`${c.diff} cm behind schedule. Check the Food tab: most likely extra rice/roti, chai sugar or snacks. Add a 10-minute walk after dinner.`}</p>`}`;
+}
+
+
+/* =================================================================
+   CARDIO · CORE · MOBILITY LOGGING
+   ================================================================= */
+const TIMED_CARDIO=['walk','cycle','treadmill','intervals','jogint','run','sprints','jumprope','rower','stairs','swim','elliptical'];
+function logMode(kind,key,dose){
+  if(kind==='strength')return 'sets';
+  if(kind==='core'){if(!setsIn(dose))return '';return /\d\s*s\b/.test(dose)?'secs':'reps'}
+  if(kind==='cardio'){if(TIMED_CARDIO.includes(key)||!setsIn(dose))return 'cardio';return 'reps'}
+  return '';
+}
+const EFF=[['easy','Easy · can sing'],['mod','Moderate · can talk'],['hard','Hard · few words']];
+const ACT_TYPES=[['walk','Brisk walk'],['cycle','Cycling'],['treadmill','Treadmill'],['jogint','Jog / walk'],['run','Run'],['swim','Swimming'],['sport','Sport (badminton, cricket…)'],['core','Core / abs'],['mob','Mobility / stretching / yoga']];
+function actLog(){return S.get('actlog',[])}
+function saveAct(entry){const l=actLog().filter(x=>x.id!==entry.id);if(entry.min>0||entry.km>0||entry.br||entry.eff||entry.hr>0)l.push(entry);l.sort((a,b)=>a.date<b.date?-1:1);S.set('actlog',l)}
+function cardioLast(key,ds){const l=actLog().filter(x=>x.key===key&&x.date<ds).slice(-1)[0];return l?`<p class="cue last">Last: ${l.min} min${l.km?` · ${l.km} km`:''}${l.eff?` · ${EFF.find(e=>e[0]===l.eff)[1].split(' ·')[0].toLowerCase()}`:''}</p>`:''}
+function defMin(dose){const m=/(\d+)\s*min/.exec(dose);if(m)return +m[1];const r=/(\d+)\s*(?:rounds|×)/.exec(dose);return r?Math.round(+r[1]*1):''}
+function cardioLogger(key,ds,dose,label){
+  const id=`w:${ds}:${key}`,cur=actLog().find(x=>x.id===id)||{};
+  const box=document.createElement('div');box.className='logger';box.hidden=!cur.id;box.dataset.lg=key;
+  box.innerHTML=`<div class="cgrid">
+    <label><span>Minutes</span><input type="number" inputmode="numeric" min="0" step="1" placeholder="${defMin(dose)}" value="${cur.min??''}" data-c="${key}" data-cf="min"></label>
+    <label><span>Distance km</span><input type="number" inputmode="decimal" min="0" step="0.1" placeholder="optional" value="${cur.km??''}" data-c="${key}" data-cf="km"></label>
+    <label><span>Avg heart rate</span><input type="number" inputmode="numeric" min="0" step="1" placeholder="optional" value="${cur.hr??''}" data-c="${key}" data-cf="hr"></label>
+    <label><span>Effort</span><select data-c="${key}" data-cf="eff"><option value="">–</option>${EFF.map(([v,t])=>`<option value="${v}" ${cur.eff===v?'selected':''}>${t}</option>`).join('')}</select></label></div>
+    ${prof.asthma?`<div class="breathpick" role="group" aria-label="Breathing during cardio"><span>Breathing</span>${[['ok','Fine'],['tight','Got tight'],['inh','Used inhaler']].map(([v,t])=>`<button type="button" class="chip ${v!=='ok'?'warn':''} ${cur.br===v?'on':''}" data-cb="${key}" data-v="${v}">${t}</button>`).join('')}</div>`:''}
+    <p class="cue">Saved automatically. Heart rate from a watch if you have one. Fat burn zone for you ≈ ${Math.round((220-(prof.age||35))*0.6)}–${Math.round((220-(prof.age||35))*0.7)} bpm.</p>`;
+  box.dataset.id=id;box.dataset.label=label;return box;
+}
+function cardioSave(box,patch){
+  const id=box.dataset.id,key=box.dataset.lg,ds=id.split(':')[1];
+  const cur=actLog().find(x=>x.id===id)||{id,date:ds,key,type:key,src:'plan'};
+  Object.assign(cur,patch);saveAct(cur);
+}
+function mobLogger(bl,ds){
+  const id=`m:${ds}:${bl.label}`,cur=actLog().find(x=>x.id===id);
+  const d=document.createElement('div');d.className='mobdone';
+  d.innerHTML=`<button type="button" class="chip ${cur?'on':''}" data-mob="${esc(bl.label)}" data-min="${bl.min}" data-ds="${ds}">${cur?`✓ ${esc(bl.label)} done · ${cur.min} min`:`Mark ${esc(bl.label.toLowerCase())} done (${bl.min} min)`}</button>
+   <label class="mobmin"><span>Minutes</span><input type="number" inputmode="numeric" min="0" step="1" value="${cur?cur.min:bl.min}" data-mobmin="${esc(bl.label)}"></label>
+   <select data-mobtight="${esc(bl.label)}" aria-label="Tightest area"><option value="">Tightest area (optional)</option>${['Hamstrings','Hips','Lower back','Shoulders','Chest','Calves','Neck'].map(x=>`<option ${cur&&cur.tight===x?'selected':''}>${x}</option>`).join('')}</select>`;
+  return d;
+}
+$('day').addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.c){const box=t.closest('.logger');const v=t.dataset.cf==='eff'?t.value:parseFloat(t.value);cardioSave(box,{[t.dataset.cf]:t.dataset.cf==='eff'?v:(isNaN(v)?0:v)});return}
+  if(t.dataset.mobmin||t.dataset.mobtight){const w=t.closest('.mobdone'),b=w.querySelector('[data-mob]'),ds=b.dataset.ds,id=`m:${ds}:${b.dataset.mob}`,cur=actLog().find(x=>x.id===id);
+    if(cur){if(t.dataset.mobmin)cur.min=+t.value||0;else cur.tight=t.value;saveAct(cur);renderSession()}}
+});
+$('day').addEventListener('click',e=>{
+  const cb=e.target.closest('[data-cb]');if(cb){const box=cb.closest('.logger');cardioSave(box,{br:cb.dataset.v});box.querySelectorAll('[data-cb]').forEach(x=>x.classList.toggle('on',x===cb));if(cb.dataset.v!=='ok')toast('Noted. Slow down to an easy pace. Stop if it does not settle in 2–3 minutes.');return}
+  const mb=e.target.closest('[data-mob]');if(mb){const ds=mb.dataset.ds,id=`m:${ds}:${mb.dataset.mob}`,w=mb.closest('.mobdone');
+    if(actLog().some(x=>x.id===id)){S.set('actlog',actLog().filter(x=>x.id!==id))}
+    else saveAct({id,date:ds,key:'mob',type:'mob',min:+w.querySelector('[data-mobmin]').value||+mb.dataset.min,tight:w.querySelector('[data-mobtight]').value,src:'plan'});
+    renderSession()}
+});
+
+/* weekly totals: cardio minutes, core sets, mobility minutes */
+function weekKeyOf(ds){const d=new Date(ds+'T00:00');const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d.toISOString().slice(0,10)}
+function coreSetsOn(ds){let n=0;for(const k of CORE_KEYS){const h=hist(k).find(x=>x.date===ds);if(h)n+=h.sets.length}return n}
+const CORE_KEYS=new Set(['plank','kneeplank','sideplank','deadbug','legraise','bicycle','hangknee','hangleg','abwheel','cablecrunch','crunch','birddog','hollow','russian','mtclimb','pallof','vups','situp']);
+function isCoreKey(k){return CORE_KEYS.has(k)}
+function weekTotals(wk){
+  const days=[...Array(7)].map((_,i)=>{const d=new Date(wk+'T00:00');d.setDate(d.getDate()+i);return localDs(d)});
+  const al=actLog().filter(x=>days.includes(x.date));
+  const cardio=al.filter(x=>x.type!=='mob'&&x.type!=='core').reduce((s,x)=>s+(x.min||0),0);
+  const km=al.reduce((s,x)=>s+(x.km||0),0);
+  const mob=al.filter(x=>x.type==='mob').reduce((s,x)=>s+(x.min||0),0);
+  const coreMin=al.filter(x=>x.type==='core').reduce((s,x)=>s+(x.min||0),0);
+  const coreSets=days.reduce((s,d)=>s+coreSetsOn(d),0);
+  const tight=al.filter(x=>x.br&&x.br!=='ok').length;
+  return {cardio,km:Math.round(km*10)/10,mob,coreSets,coreMin,tight};
+}
+function localDs(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+const ACT_TGT={cardio:150,coreSets:18,mob:60};
+function renderAct(){
+  const el=$('actlog');if(!el)return;
+  const wk=weekKeyOf(todayStr()),t=weekTotals(wk);
+  const weeks=[...Array(8)].map((_,i)=>{const d=new Date(wk+'T00:00');d.setDate(d.getDate()-7*(7-i));const k=localDs(d);return {k,...weekTotals(k)}});
+  const bar=(lab,v,tg,c,u)=>`<div class="mbar"><div class="mtop"><span class="k">${lab}</span><b>${v}<small> / ${tg} ${u}</small></b></div><div class="mtrack"><i style="width:${Math.min(100,v/tg*100)}%;background:${c}"></i></div></div>`;
+  const W=300,H=110,pb=18,mx=Math.max(ACT_TGT.cardio,...weeks.map(w=>w.cardio+w.mob)),bw=W/8-8;
+  let svg=`<svg viewBox="0 0 ${W} ${H}" class="actchart" role="img" aria-label="Cardio and mobility minutes, last 8 weeks"><line x1="0" x2="${W}" y1="${H-pb-(ACT_TGT.cardio/mx)*(H-pb-6)}" y2="${H-pb-(ACT_TGT.cardio/mx)*(H-pb-6)}" stroke="var(--dim)" stroke-dasharray="3 3"/>`;
+  weeks.forEach((w,i)=>{const x=i*(W/8)+4,hc=(w.cardio/mx)*(H-pb-6),hm=(w.mob/mx)*(H-pb-6);
+    svg+=`<rect x="${x}" y="${H-pb-hc}" width="${bw}" height="${hc}" rx="2" fill="${HEX.cardio}"/><rect x="${x}" y="${H-pb-hc-hm-(hm?1:0)}" width="${bw}" height="${hm}" rx="2" fill="${HEX.stretch}"/>
+    <text x="${x+bw/2}" y="${H-4}" text-anchor="middle" font-size="9" fill="var(--muted)">${i===7?'This':new Date(w.k+'T00:00').getDate()+'/'+(new Date(w.k+'T00:00').getMonth()+1)}</text>`});
+  svg+='</svg>';
+  const recent=actLog().slice(-6).reverse();
+  el.innerHTML=`<div class="diethead"><h3 class="sub">Cardio · Core · Mobility</h3><span class="cue">This week</span></div>
+   ${bar('Cardio',t.cardio,ACT_TGT.cardio,HEX.cardio,'min')}
+   ${bar('Core sets',t.coreSets+(t.coreMin?Math.round(t.coreMin/2):0),ACT_TGT.coreSets,HEX.core,'sets')}
+   ${bar('Mobility',t.mob,ACT_TGT.mob,HEX.stretch,'min')}
+   <p class="cue">${t.km?`${t.km} km covered this week. `:''}${prof.asthma&&t.tight?`Breathing got tight ${t.tight}× this week. Mention it to your chest doctor if it keeps happening. `:''}Targets: 150 min cardio (fat loss and heart), about 18 core sets, 60 min mobility.</p>
+   ${svg}<div class="legend"><span style="--c:${HEX.cardio}">Cardio min</span><span style="--c:${HEX.stretch}">Mobility min</span><span style="--c:var(--dim)">150 min target</span></div>
+   <details class="actadd"><summary>Log extra activity (evening walk, Sunday walk, yoga, sport)</summary>
+   <form id="act-form" class="logform">
+    <label><span>Date</span><input type="date" name="date" value="${todayStr()}" max="${todayStr()}"></label>
+    <label><span>Activity</span><select name="type">${ACT_TYPES.map(([v,n])=>`<option value="${v}">${n}</option>`).join('')}</select></label>
+    <label><span>Minutes</span><input type="number" name="min" inputmode="numeric" min="1" step="1" required></label>
+    <label><span>Distance km</span><input type="number" name="km" inputmode="decimal" min="0" step="0.1" placeholder="optional"></label>
+    <label><span>Effort</span><select name="eff"><option value="">–</option>${EFF.map(([v,n])=>`<option value="${v}">${n}</option>`).join('')}</select></label>
+    ${prof.asthma?`<label><span>Breathing</span><select name="br"><option value="ok">Fine</option><option value="tight">Got tight</option><option value="inh">Used inhaler</option></select></label>`:''}
+    <button type="submit" class="primary">Save</button></form></details>
+   ${recent.length?`<h4 class="sub" style="margin-top:12px">Recent</h4><ul class="actlist">${recent.map(r=>`<li><span>${r.date.slice(8)}/${r.date.slice(5,7)}</span><b>${esc((ACT_TYPES.find(a=>a[0]===r.type)||[0,EX[r.key]?EX[r.key].n:r.type])[1])}</b><span>${r.min||0} min${r.km?` · ${r.km} km`:''}${r.br&&r.br!=='ok'?' · <em>tight</em>':''}</span>${r.src==='extra'?`<button type="button" class="link" data-actdel="${r.id}" aria-label="Delete">✕</button>`:'<i></i>'}</li>`).join('')}</ul>`:''}`;
+  $('act-form').onsubmit=ev=>{ev.preventDefault();const f=new FormData(ev.target);const o={id:'x:'+Date.now(),src:'extra',date:f.get('date'),type:f.get('type'),key:f.get('type'),min:+f.get('min')||0,km:+f.get('km')||0,eff:f.get('eff')||'',br:f.get('br')||''};
+    saveAct(o);toast('Activity saved');renderAct()};
+  el.querySelectorAll('[data-actdel]').forEach(b=>b.onclick=()=>{S.set('actlog',actLog().filter(x=>x.id!==b.dataset.actdel));renderAct()});
+}
+
+
+/* =================================================================
+   EXPORT FOR ANALYSIS — readable file + chat summary + daily CSV
+   ================================================================= */
+const r1=x=>Math.round(x*10)/10;
+function firstDataDate(){let m=todayStr();try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i).slice(P.length);const mm=/^(?:day|food):(\d{4}-\d\d-\d\d)$/.exec(k);if(mm&&mm[1]<m)m=mm[1]}}catch(e){}if(prof.start<m)m=prof.start;return m}
+function dateRange(days){const out=[];const end=new Date();let d=days?addDays(end,-(days-1)):parseYmd(firstDataDate());while(ymd(d)<=ymd(end)){out.push(ymd(d));d=addDays(d,1)}return out}
+function dayRow(ds){
+  const p=posOf(parseYmd(ds)),sess=Plan.program(p.w,p.d),rec=getDay(ds),t=totals(ds),fl=foodLog(ds);
+  const acts=actLog().filter(x=>x.date===ds);
+  const q=questsFor(ds);
+  return {date:ds,week:p.w,weekday:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][p.d],rank_stage:Plan.stageOf(p.w).rank,planned:ds<ymd(mondayOf(parseYmd(prof.start)))?'(before plan start)':sess.t,
+    workout_done:!!rec.workout,breathing:rec.breath?({g:'green',y:'yellow',r:'red'}[rec.breath]||rec.breath):'',
+    quests_done:q.filter(x=>x.done).length,quests_total:q.length,water_l:r1((rec.water||0)/1000),
+    kcal:Math.round(t.kcal),protein_g:Math.round(t.p),carbs_g:Math.round(t.c),fat_g:Math.round(t.f),fibre_g:Math.round(t.fi),food_items:fl.length,
+    foods:fl.map(e=>{const f=food(e.f);return f?`${f.n} ×${e.q}`:e.f}).join('; '),
+    cardio_min:acts.filter(x=>x.type!=='mob'&&x.type!=='core').reduce((s,x)=>s+(x.min||0),0),
+    cardio_km:r1(acts.reduce((s,x)=>s+(x.km||0),0)),mobility_min:acts.filter(x=>x.type==='mob').reduce((s,x)=>s+(x.min||0),0),
+    core_sets:coreSetsOn(ds),breath_tight_events:acts.filter(x=>x.br&&x.br!=='ok').length};
+}
+function liftHistory(){const out={};Object.keys(EX).forEach(k=>{const h=hist(k);if(h.length)out[EX[k].n]=h.map(x=>({date:x.date,sets:x.sets.map(s=>x.u==='s'?`${s.reps}s`:`${s.kg?s.kg+'kg×':''}${s.reps}`).join(', '),est_1rm_kg:x.e1||undefined}))});return out}
+function analysisData(days){
+  const dates=dateRange(days),T=targets(),rows=dates.map(dayRow);
+  const logged=rows.filter(r=>r.food_items>0),avg=k=>logged.length?Math.round(logged.reduce((s,r)=>s+r[k],0)/logged.length):null;
+  const nowP=posOf(new Date());
+  return {app:'Hunter System',export:'analysis',version:'5.3',exported:new Date().toISOString(),period:{from:dates[0],to:dates[dates.length-1],days:dates.length},
+    profile:{age:prof.age,height_cm:prof.ht,weight_kg:prof.wt,diet:['veg','veg + egg','non-veg'][prof.diet]||prof.diet,gym_time:prof.gym,plan_start:prof.start,asthma_mode:!!prof.asthma,doctor_review_mode:!!prof.medHold},
+    plan:{current_week:nowP.w,total_weeks:Plan.TOTAL,cut_check_week:26,stage:Plan.stageOf(nowP.w).name,earned_rank:earnedRank()},
+    daily_targets:{kcal:T.kcal,protein_g:T.p,carbs_g:T.c,fat_g:T.f,fibre_g:T.fi,maintenance_kcal:T.tdee,water_l:waterL()},
+    averages_on_logged_days:{days_with_food_logged:logged.length,kcal:avg('kcal'),protein_g:avg('protein_g'),carbs_g:avg('carbs_g'),fat_g:avg('fat_g'),fibre_g:avg('fibre_g')},
+    days:rows,
+    body_log:latestLog().filter(r=>r.date>=dates[0]),
+    lifts_and_core:liftHistory(),
+    cardio_core_mobility:actLog().filter(x=>x.date>=dates[0]).map(({id,src,...x})=>({...x,source:src})),
+    rank_tests:S.get('tests',[]),stat_checks:S.get('checks',[]),
+    health_todo:S.get('health',{}),
+    mission:{steps_done:(S.get('mdone',[])||[]).length,money_hours:mLog().filter(x=>!x.date||x.date>=dates[0]),revenue_by_month:S.get('mrev',[])},
+    custom_foods:customFoods()};
+}
+function summaryText(days){
+  const d=analysisData(days),T=d.daily_targets;
+  const L=[`Hunter System export · ${d.period.from} to ${d.period.to} (${d.period.days} days)`,
+   `Me: ${d.profile.age||'?'} y, ${d.profile.height_cm} cm, ${d.profile.weight_kg} kg, ${d.profile.diet}, asthma mode ${d.profile.asthma_mode?'on':'off'}. Week ${d.plan.current_week} of ${d.plan.total_weeks}, ${d.plan.stage}, rank ${d.plan.earned_rank}.`,
+   `Targets: ${T.kcal} kcal, protein ${T.protein_g} g, carbs ${T.carbs_g} g, fat ${T.fat_g} g, fibre ${T.fibre_g} g, water ${T.water_l} L.`,
+   `Average on ${d.averages_on_logged_days.days_with_food_logged} logged days: ${d.averages_on_logged_days.kcal??'–'} kcal, protein ${d.averages_on_logged_days.protein_g??'–'} g, carbs ${d.averages_on_logged_days.carbs_g??'–'} g, fat ${d.averages_on_logged_days.fat_g??'–'} g, fibre ${d.averages_on_logged_days.fibre_g??'–'} g.`,'',
+   'Date | Plan | Done | Breath | kcal | P | C | F | Fib | Water L | Cardio min | Mob min | Core sets'];
+  d.days.forEach(r=>L.push(`${r.date} ${r.weekday} | ${r.planned} | ${r.workout_done?'Y':'-'} | ${r.breathing||'-'} | ${r.kcal||'-'} | ${r.protein_g||'-'} | ${r.carbs_g||'-'} | ${r.fat_g||'-'} | ${r.fibre_g||'-'} | ${r.water_l||'-'} | ${r.cardio_min||'-'} | ${r.mobility_min||'-'} | ${r.core_sets||'-'}`));
+  if(d.body_log.length){L.push('','Body log (date: weight kg, waist cm):');d.body_log.forEach(b=>L.push(`${b.date}: ${b.wt??'-'} kg, ${b.waist??'-'} cm`))}
+  const lifts=Object.entries(d.lifts_and_core).map(([n,h])=>{const f=h.filter(x=>x.date>=d.period.from);return f.length?`${n}: ${f[0].date} ${f[0].sets}${f.length>1?` → ${f[f.length-1].date} ${f[f.length-1].sets}`:''}`:null}).filter(Boolean);
+  if(lifts.length){L.push('','Lifts and core (first → latest in period):',...lifts)}
+  const foodDays=d.days.filter(r=>r.foods).slice(-7);
+  if(foodDays.length){L.push('','Food, last 7 logged days:');foodDays.forEach(r=>L.push(`${r.date}: ${r.foods}`))}
+  L.push('','Please analyse my progress: fat loss, protein, training consistency, strength and what to change.');
+  return L.join('\n');
+}
+function csvOf(rows){if(!rows.length)return '';const ks=Object.keys(rows[0]);const q=v=>{v=v==null?'':String(v);return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v};return [ks.join(','),...rows.map(r=>ks.map(k=>q(r[k])).join(','))].join('\r\n')}
+async function shareOrDownload(blob,name,msg){
+  try{const f=new File([blob],name,{type:blob.type});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});msg('Shared. Pick Claude, WhatsApp or Drive in the share menu.');return}}catch(e){if(e&&e.name==='AbortError'){msg('Share cancelled.');return}}
+  download(blob,name);msg('Saved to your Downloads: '+name);
+}
+window.HunterExport={summaryText:(d)=>summaryText(d),analysisData:(d)=>analysisData(d)};
+function initExport(){
+  const el=$('exportwin');if(!el)return;
+  const msg=t=>{$('ex-msg').textContent=t};
+  const days=()=>+$('ex-range').value;
+  $('ex-file').onclick=()=>shareOrDownload(new Blob([JSON.stringify(analysisData(days()),null,1)],{type:'application/json'}),`hunter-analysis-${todayStr()}.json`,msg);
+  $('ex-csv').onclick=()=>shareOrDownload(new Blob(['﻿'+csvOf(dateRange(days()).map(dayRow))],{type:'text/csv'}),`hunter-daily-${todayStr()}.csv`,msg);
+  $('ex-copy').onclick=async()=>{const t=summaryText(days());try{await navigator.clipboard.writeText(t);msg('Summary copied. Paste it into your chat with Claude.')}catch(e){const ta=$('ex-text');ta.hidden=false;ta.value=t;ta.select();msg('Select all and copy the text below.')}};
 }
 
 /* ---------- toast ---------- */
