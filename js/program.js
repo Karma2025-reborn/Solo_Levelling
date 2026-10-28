@@ -153,21 +153,74 @@ function criteria72(rank,bw,ht,base){
    stage at speed: week w maps proportionally onto the 72-week template.
    ===================================================================== */
 const FAST=[
- {rank:'E',to:'D',start:1,end:8,name:'E-Rank · Awakening',goal:'Machines, then free weights. Fix the food. Cut phase starts now.',runKm:2},
- {rank:'D',to:'C',start:9,end:16,name:'D-Rank · Hunter Training',goal:'Barbell strength 5 × 5 while the deficit keeps the belly shrinking.',runKm:2},
- {rank:'C',to:'B',start:17,end:26,name:'C-Rank · Gate Raids',goal:'V-taper training + final cut push: sharp cuts by week 26.',runKm:2},
- {rank:'B',to:'A',start:27,end:35,name:'B-Rank · Shadow Extraction',goal:'Hold the cuts, push strength up. Eat close to maintenance.',runKm:2},
+ {rank:'E',to:'D',start:1,end:8,name:'E-Rank · Awakening',goal:'From week 5: one muscle a day, abs daily, legs Saturday. 1,900 kcal, 140 g protein, 3.5 L water.',runKm:2},
+ {rank:'D',to:'C',start:9,end:16,name:'D-Rank · Hunter Training',goal:'Year-end sprint: add weight every week in the 8–12 range. Belly visibly flatter by 31 December.',runKm:2},
+ {rank:'C',to:'B',start:17,end:26,name:'C-Rank · Gate Raids',goal:'Cut to sharp: barbell lifts join the split, 25 min incline walks. Visible abs by week 26.',runKm:2},
+ {rank:'B',to:'A',start:27,end:35,name:'B-Rank · Shadow Extraction',goal:'Build & sharpen: heavier lifts, about 250 kcal deficit. Deeper cuts at about 8–10% body fat.',runKm:2},
  {rank:'A',to:'S',start:36,end:43,name:'A-Rank · Monarch Ascension',goal:'Peak strength and conditioning. S-Rank test at week 43 (10 months).',runKm:2}
 ];
 const S_FAST={rank:'S',to:null,start:44,end:9999,name:'S-Rank · Shadow Monarch',goal:'Maintain the look and keep raising your numbers. Repeat the A-Rank cycle.',runKm:2};
 function fastStage(w){return FAST.find(s=>w>=s.start&&w<=s.end)||S_FAST}
 function origWeek(w){const f=fastStage(w);if(f.rank==='S')return 73+((w-44)%16+16)%16;const o=STAGES[FAST.indexOf(f)];
   return o.start+Math.round((w-f.start)/(f.end-f.start)*(o.end-o.start))}
-function program(w,d){const f=fastStage(w);if(f.rank!=='S'&&w===f.end&&d===5)return testDay(f);return origProgram(origWeek(w),d)}
+function program(w,d){const f=fastStage(w);if(f.rank!=='S'&&w===f.end&&d===5)return testDay(f);if(w>=SPLIT_FROM)return splitDay(w,d);return origProgram(origWeek(w),d)}
 function fastSteps(w){return w<=1?7000:w<=2?8000:w<=5?9000:10000}
 function fastDeload(w){return deloadOf(origWeek(w),stageOf(origWeek(w)))&&fastStage(w).rank!=='A'}
-function fastEPhase(w){return w<=3?0:w<=6?1:2}
-const FAST_EPHASES=['Machines (weeks 1–3)','Free weights (weeks 4–6)','Heavier (weeks 7–8)'];
+function fastEPhase(w){return w<=3?0:w<=4?1:2}
+const FAST_EPHASES=['Machines (weeks 1–3)','Full body (week 4)','Split · Year-end sprint'];
+
+
+/* =====================================================================
+   v6 SPLIT PROGRAM (from week 5): one muscle a day, abs daily, legs Saturday.
+   Double progression: stay in the rep range; when every set hits the top,
+   add weight next time. Phases: Year-end sprint (5–14) · Cut to sharp (15–26)
+   · Build & sharpen (27–43) · S maintenance (44+).
+   ===================================================================== */
+const SPLIT_FROM=5;
+function splitPhase(w){return w<=14?0:w<=26?1:2}
+const SPLIT_PHASES=['Year-end sprint','Cut to sharp','Build & sharpen'];
+const ABS=[
+ [['hangknee','3 × 10–15'],['plank','3 × 30–60 s']],
+ [['cablecrunch','3 × 12–15'],['deadbug','3 × 10–12 each']],
+ [['legraise','3 × 10–15'],['bicycle','3 × 16–20']],
+ [['hangknee','3 × 10–15'],['russian','3 × 16–20']],
+ [['plank','3 × 30–60 s'],['cablecrunch','3 × 12–15']],
+ [['abwheel','3 × 6–10'],['deadbug','2 × 10–12 each']]];
+function absBlk(d){return blk('core','Abs',10,ABS[d],'45 s rest. Slow and controlled; squeeze at the top.')}
+function walkBlk(ph,d){
+  if(d===5)return blk('cardio','Cardio',15,[['cycle','15 min easy']]);
+  const m=ph===0?20:ph===1?25:15;
+  return blk('cardio','Fat burn',m,[['treadmill',`${m} min incline walk, talk pace (incline 8–12, speed 4.5–5.5)`]]);
+}
+const REST_NOTE='Rest 75–90 s. Stay in the rep range. When you hit the top number on every set, add 2.5 kg next time (one dumbbell = log the weight of one).';
+function splitDay(w,d){
+  const ph=splitPhase(w),heavy=ph>=1;
+  const dl=[20,31,38].includes(w)||(w>=44&&(w-44)%8===7);
+  const L=(items)=>S(items,dl);
+  const mk=(t,items,how)=>({t,blocks:[WARM,blk('strength',t,heavy?45:40,L(items),how||REST_NOTE),absBlk(d),walkBlk(ph,d),STRETCH]});
+  const days=[
+   mk('Chest',heavy?[['bbbench','4 × 6–8'],['incline','3 × 8–12'],['chestpress','3 × 10–12'],['cablefly','3 × 12–15'],['pushup','2 × max']]
+                  :[['incline','3 × 8–12'],['chestpress','3 × 8–12'],['bench','3 × 8–12'],['cablefly','3 × 12–15'],['pushup','2 × max']],
+      heavy?'2–3 min rest on bench press, 75 s on the rest. '+REST_NOTE:null),
+   mk('Back',heavy?[[ph===1?'pullup':'pullbw',ph===1?'3 × 6–10 (assisted)':'4 × 5–8'],['bbrow','4 × 6–8'],['pulldown','3 × 8–12'],['cablerow','3 × 10–12'],['facepull','3 × 12–15']]
+                 :[['pulldown','3 × 8–12'],['closepull','3 × 8–12'],['cablerow','3 × 8–12'],['dbrow','3 × 8–12 each'],['facepull','3 × 12–15']]),
+   mk('Shoulders',heavy?[['ohp','4 × 6–8'],['shoulderpress','3 × 8–12'],['lateral','4 × 12–15'],['revfly','3 × 12–15'],['shrug','3 × 10–12']]
+                      :[['shoulderpress','3 × 8–12'],['lateral','4 × 12–15'],['revfly','3 × 12–15'],['frontraise','2 × 10–12'],['shrug','3 × 10–12']],
+      'Shoulders make the waist look smaller. Lateral raises: light, strict, no swinging. '+REST_NOTE),
+   mk('Arms',heavy?[['curl','4 × 8–12'],['skull','3 × 8–12'],['hammer','3 × 10–12'],['pushdown','3 × 10–12'],['dips','3 × 6–10 (assisted if needed)']]
+                 :[['curl','3 × 8–12'],['pushdown','3 × 8–12'],['hammer','3 × 10–12'],['ohext','3 × 10–12'],['dips','2 × 6–10 (assisted if needed)']],
+      'Superset a biceps move with a triceps move to save time. '+REST_NOTE),
+   mk('Upper pump',[['chestpress','3 × 10–12'],['pulldown','3 × 10–12'],['lateral','3 × 12–15'],['cablerow','3 × 10–12'],['incline','2 × 10–12']],
+      'A bit lighter than earlier in the week: 60 s rest, chase the pump, stop 1–2 reps before failure.'),
+   mk('Legs',heavy?[['squat','4 × 6–8'],['rdl','3 × 8–10'],['legpress','3 × 10–15'],['legcurl','3 × 10–12'],['calf','4 × 12–15']]
+                 :[['legpress','4 × 10–15'],['goblet','3 × 10–12'],['rdl','3 × 10–12'],['legcurl','3 × 10–12'],['calf','3 × 12–15']],
+      (heavy?'2–3 min rest on squats. ':'')+'90 s rest. Legs burn the most calories of any day: do not skip. '+REST_NOTE),
+   {t:'Rest + long walk',rest:true,blocks:[]}];
+  const day=days[d];
+  if(dl&&!day.rest)return {...day,note:'Deload week: 1 set fewer, about 10% lighter. Your body catches up and grows.'};
+  if(w>=44&&!day.rest)return {...day,note:'S-Rank maintenance: keep the look, beat your best numbers every 4 weeks.'};
+  return day;
+}
 
 /* 10-month rank tests (S at week 43). Achievable for a beginner with asthma. No timed runs. */
 function criteria(rank,bw,ht){
@@ -182,5 +235,5 @@ function criteria(rank,bw,ht){
   return (C[rank]||[]).map(([k,l,u,t,cmp])=>({k,l,u,t,cmp}));
 }
 
-window.Plan={STAGES:FAST,TOTAL:43,CUT_WEEK:26,stageOf:fastStage,program,stepsFor:fastSteps,criteria,ePhase:fastEPhase,EPHASES:FAST_EPHASES,deloadOf:(w)=>fastDeload(w),origWeek};
+window.Plan={SPLIT_FROM,splitPhase,SPLIT_PHASES,STAGES:FAST,TOTAL:43,CUT_WEEK:26,stageOf:fastStage,program,stepsFor:fastSteps,criteria,ePhase:fastEPhase,EPHASES:FAST_EPHASES,deloadOf:(w)=>fastDeload(w),origWeek};
 })();

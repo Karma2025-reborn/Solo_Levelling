@@ -45,6 +45,7 @@ function questsFor(ds){
   const br=prof.asthma?rec.breath:null;
   if(!sess.rest&&br==='y')q.push({id:'light',t:'Light day: 30 min easy walk + mobility',s:'Asthma yellow zone · no intervals or heavy sets',done:!!rec.q.light||!!rec.workout});
   else if(!sess.rest&&br!=='r')q.push({id:'work',t:`Complete: ${sess.t}`,s:'Finish the workout in Body',auto:true,done:!!rec.workout});
+  if(p.d===6){const has=latestLog().some(r=>r.date===ds&&r.waist);q.push({id:'waistq',t:'Measure waist: morning, at the navel, before food',s:'Log it in Stats → Body log',auto:true,done:has})}
   q.push({id:'water',t:`Drink ${waterL().toFixed(1)} L water`,s:`${(rec.water/1000).toFixed(2)} L so far`,auto:true,done:rec.water>=waterL()*1000});
   q.push({id:'meals',t:`Eat ${meals.length} planned meals`,s:`${mealsDone} of ${meals.length} ticked in the timeline`,auto:true,done:mealsDone>=meals.length-1});
   const ft=(typeof totals==='function')?totals(ds):{n:0,p:0};
@@ -76,6 +77,14 @@ function saveHist(k,ds,sets,u){
   h.sort((a,b)=>a.date<b.date?-1:1);S.set('hist:'+k,h);
 }
 function lastBefore(k,ds){const h=hist(k).filter(x=>x.date<ds);return h[h.length-1]}
+function progCue(dose,last){
+  const m=/× (\d+)–(\d+)(?! s)/.exec(dose);if(!m||!last||last.u==='s'||!last.sets.length)return '';
+  const lo=+m[1],hi=+m[2],reps=last.sets.map(s=>s.reps),kgs=last.sets.map(s=>s.kg||0),mx=Math.max(...kgs);
+  if(Math.max(...reps)>hi+4)return `<p class="prog up">Too light last time (${Math.max(...reps)} reps). Pick a weight you can lift only ${hi} times.</p>`;
+  if(reps.every(r=>r>=hi))return `<p class="prog up">▲ You hit ${hi} on every set. Add ${mx>=40?'5':'2.5'} kg today${mx?` → about ${mx+(mx>=40?5:2.5)} kg (or the next dumbbell up)`:''}.</p>`;
+  if(reps.some(r=>r<lo))return `<p class="prog hold">Below ${lo} reps last time. Keep this weight until every set reaches ${lo}+.</p>`;
+  return `<p class="prog">Same weight. Beat last time by 1 rep on any set.</p>`;
+}
 function setsIn(dose){const m=/^(\d+) ×/.exec(dose);return m?+m[1]:0}
 
 /* ---------- colours ---------- */
@@ -130,6 +139,7 @@ function renderToday(){
   renderMissionToday();
   renderBreath();
   renderCut();
+  renderWaterNudge();
   header();
 }
 document.addEventListener('change',e=>{
@@ -147,7 +157,7 @@ function stageList(){return [...Plan.STAGES,{rank:'S',start:44,end:47,name:'S-Ra
 function renderPlan(){
   const st=Plan.stageOf(selW),stages=stageList(),cur=posOf(new Date()).w;
   $('ranks').innerHTML=stages.map(s=>`<button type="button" data-st="${s.start}" aria-pressed="${s.rank===st.rank}"><b>${s.rank}</b><span>W${s.start}${s.rank==='S'?'+':'–'+s.end}</span></button>`).join('');
-  $('stage-goal').innerHTML=`<b>${esc(st.name)}</b> · ${esc(st.goal)}${st.rank==='E'?` · <span class="tag" style="--c:var(--cyan)">${Plan.EPHASES[Plan.ePhase(selW)]}</span>`:''}`;
+  $('stage-goal').innerHTML=`<b>${esc(st.name)}</b> · ${esc(st.goal)}${selW>=Plan.SPLIT_FROM?` · <span class="tag" style="--c:var(--cyan)">${Plan.SPLIT_PHASES[Plan.splitPhase(selW)]}</span>`:st.rank==='E'?` · <span class="tag" style="--c:var(--cyan)">${Plan.EPHASES[Plan.ePhase(selW)]}</span>`:''}`;
   const sEnd=st.rank==='S'?st.start+15:st.end;let wb='';
   for(let w=st.start;w<=sEnd;w++){let c=0;for(let d=0;d<7;d++){const ds=ymd(addDays(mondayOf(parseYmd(prof.start)),(w-1)*7+d));if(hasData(ds)&&getDay(ds).workout)c++}
     wb+=`<button type="button" data-w="${w}" aria-pressed="${w===selW}" class="${w===cur?'cur':''}${Plan.deloadOf(w,st)?' dl':''}">${w}<small><i style="width:${c/6*100}%"></i></small></button>`}
@@ -188,7 +198,7 @@ function renderSession(){
         const last=lastBefore(key,ds);
         c.insertAdjacentHTML('beforeend',`<div class="info"><div class="top"><span class="tag">${esc(e.m)}</span><span class="num">${String(n).padStart(2,'0')}</span></div>
           <h4>${esc(e.n)}</h4><div class="dose">${esc(dose)}</div>
-          ${mode==='cardio'?cardioLast(key,ds):last?`<p class="cue last">Last: ${last.sets.map(s=>`${s.kg?s.kg+'×':''}${s.reps}${last.u==='s'?' s':''}`).join(', ')}</p>`:''}
+          ${mode==='cardio'?cardioLast(key,ds):last?`<p class="cue last">Last: ${last.sets.map(s=>`${s.kg?s.kg+'×':''}${s.reps}${last.u==='s'?' s':''}`).join(', ')}</p>${progCue(dose,last)}`:''}
           <div class="cardbtns"><button type="button" class="link" data-how="${key}">How to</button>${ns?`<button type="button" class="link" data-logt="${key}">${mode==='secs'?'Log hold times':'Log sets'}</button>`:''}${mode==='cardio'?`<button type="button" class="link" data-logt="${key}">Log cardio</button>`:''}</div></div>`);
         if(ns)c.appendChild(logger(key,ns,ds,last,mode));
         if(mode==='cardio')c.appendChild(cardioLogger(key,ds,dose,bl.label));
@@ -452,7 +462,7 @@ function setFoodLog(ds,a){S.set(foodKey(ds),a)}
 function totals(ds){const t={kcal:0,p:0,c:0,f:0,fi:0,n:0};foodLog(ds).forEach(e=>{const f=food(e.f);if(!f)return;t.n++;['kcal','p','c','f','fi'].forEach(m=>t[m]+=f[m]*e.q)});return t}
 function stageAdj(){const w=posOf(new Date()).w;if(w<=26)return -500;const r=Plan.stageOf(w).rank;return {B:-250,A:-200,S:0}[r]||0}
 function targets(){
-  const age=prof.age||30,bmr=10*prof.wt+6.25*prof.ht-5*age+5,tdee=bmr*1.5;
+  const age=prof.age||30,bmr=10*prof.wt+6.25*prof.ht-5*age+5,tdee=bmr*1.4;
   const kcal=Math.round((tdee+stageAdj())/50)*50,p=protein(),f=Math.round(kcal*0.25/9),c=Math.max(0,Math.round((kcal-p*4-f*9)/4));
   return {kcal,p,c,f,fi:30,tdee:Math.round(tdee)};
 }
@@ -1092,19 +1102,25 @@ document.addEventListener('change',e=>{const t=e.target;if(t.dataset.hl){const h
    6-MONTH CUT CHECK (week 26): waist target on a straight line
    ================================================================= */
 function cutCheck(){
-  const log=latestLog().filter(r=>r.waist);const tgt=Math.round(0.45*prof.ht);
+  const log=latestLog().filter(r=>r.waist);const tgt=Math.round(0.45*prof.ht),sharp=Math.round(0.43*prof.ht);
   const w=posOf(new Date()).w,left=Math.max(0,26-w+1);
-  if(!log.length)return {tgt,w,left,none:true};
+  if(!log.length)return {tgt,sharp,w,left,none:true};
   const start=log[0].waist,cur=log[log.length-1].waist;
   const exp=Math.round((start-(start-tgt)*Math.min(1,(w-1)/26))*10)/10;
-  return {tgt,w,left,start,cur,exp,diff:Math.round((cur-exp)*10)/10};
+  return {tgt,sharp,w,left,start,cur,exp,diff:Math.round((cur-exp)*10)/10};
+}
+function renderWaterNudge(){
+  const el=$('waternudge');if(!el)return;const h=new Date().getHours(),w=getDay(todayStr()).water||0;
+  const need=h>=16&&w<2000?2000:h>=12&&w<1000?1000:h>=20&&w<3000?3000:0;
+  if(!need){el.hidden=true;return}el.hidden=false;
+  el.innerHTML=`<p class="note hold" style="margin:0"><b>Water check:</b> ${(w/1000).toFixed(1)} L so far. You should be at ${need/1000} L by now. Low water causes constipation, gas and a swollen belly. Drink 2 glasses now.</p>`;
 }
 function renderCut(){
   const el=$('cutcheck');if(!el)return;const c=cutCheck();
   if(c.w>30){el.hidden=true;return}el.hidden=false;
   el.innerHTML=`<div class="diethead"><h3 class="sub">6-month cut check</h3><span class="cue">${c.left>0?`${c.left} weeks to week 26`:'Week 26 reached'}</span></div>
-   ${c.none?`<p class="cue">Log your waist in Stats → Body log to start tracking. Target: <b style="color:var(--ink)">${c.tgt} cm</b> by week 26 (waist ÷ height 0.45, when abs usually show).</p>`:
-   `<div class="cutrow"><div><span class="k">Start</span><b>${c.start}</b></div><div><span class="k">Now</span><b>${c.cur}</b></div><div><span class="k">Should be</span><b>${c.exp}</b></div><div><span class="k">Target</span><b>${c.tgt}</b></div></div>
+   ${c.none?`<p class="cue">Log your waist in Stats → Body log to start tracking. Target: <b style="color:var(--ink)">${c.tgt} cm</b> by week 26 (waist ÷ height 0.45, when abs usually show), then about ${Math.round(0.43*prof.ht)} cm for sharp cuts at about 8–10% body fat.</p>`:
+   `<div class="cutrow"><div><span class="k">Start</span><b>${c.start}</b></div><div><span class="k">Now</span><b>${c.cur}</b></div><div><span class="k">Should be</span><b>${c.exp}</b></div><div><span class="k">Wk 26</span><b>${c.tgt}</b></div></div><p class="cue">Final sharp-cut target ≈ ${c.sharp} cm (about 8–10% body fat).</p>
     <div class="mtrack lg"><i style="width:${Math.max(2,Math.min(100,(c.start-c.cur)/(c.start-c.tgt)*100))}%;background:${c.diff<=0.5?'var(--ok)':'var(--cardio)'}"></i></div>
     <p class="note ${c.diff<=0.5?'':'hold'}">${c.diff<=0.5?`On track for sharp cuts by week 26. Keep the deficit 6 days a week.`:`${c.diff} cm behind schedule. Check the Food tab: most likely extra rice/roti, chai sugar or snacks. Add a 10-minute walk after dinner.`}</p>`}`;
 }

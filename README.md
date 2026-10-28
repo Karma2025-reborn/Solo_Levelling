@@ -1,4 +1,4 @@
-# Hunter System v5.3
+# Hunter System v6.0
 
 A 72-week E → S rank transformation app that installs on your phone and works offline.
 
@@ -11,6 +11,14 @@ A 72-week E → S rank transformation app that installs on your phone and works 
 | **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
 | **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
 | **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
+
+## v6.0: split program for sharp cuts
+From week 5 the gym plan is one muscle a day: **Mon Chest · Tue Back · Wed Shoulders · Thu Arms · Fri Upper pump · Sat Legs · Sun rest + long walk**, with 10 min abs every gym day and an incline-walk fat burner (20 min, 25 min in weeks 15–26, 15 min after).
+- Phases: **Year-end sprint** (weeks 5–14, to 31 Dec, machines and dumbbells), **Cut to sharp** (15–26, barbell bench, rows, OHP, squat and pull-ups join), **Build & sharpen** (27–43). Deload weeks 20, 31, 38.
+- **Rep ranges with progression cues** on every card: add weight when you hit the top of the range on every set, "too light" when reps run far past it, "keep this weight" when below it.
+- Calorie target now uses a desk-job activity factor (about 1,900 kcal at 78 kg); protein 1.8 g per kg.
+- Water check card on Today if you fall behind (1 L by noon, 2 L by 4 pm, 3 L by 8 pm). Sunday quest: measure your waist.
+- Cut check shows the week-26 waist target (waist ÷ height 0.45) and the final sharp-cut target (0.43, about 8–10% body fat).
 
 ## v5.3: export for analysis
 Settings → **Export for analysis** (pick 14 / 30 / 90 days or everything):

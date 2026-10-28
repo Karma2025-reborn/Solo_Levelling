@@ -1,6 +1,6 @@
 /* Hunter System service worker: makes the app work offline.
    After changing any file, bump VERSION so phones fetch the new copy. */
-const VERSION = 'hunter-v5.3.0';
+const VERSION = 'hunter-v6.0.0';
 const SHELL = ['./', 'index.html', 'css/app.css', 'js/figures.js', 'js/exercises.js', 'js/program.js', 'js/diet.js', 'js/foods_mh.js', 'js/foods_indb.js', 'js/foods.js', 'js/mind.js', 'js/wealth.js', 'js/mission.js', 'js/app.js', 'manifest.json',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png'];
 

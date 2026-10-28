@@ -506,3 +506,6 @@ ol.road li.cur b{color:var(--stretch)}
 .exrange select{font:600 15px var(--body);background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:8px}
 .exbtns{flex-wrap:wrap}
 .extext{width:100%;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:8px;font:12px ui-monospace,monospace;margin-top:8px}
+.prog{font-size:12px;margin:4px 0 0;color:var(--muted)}
+.prog.up{color:var(--ok);font-weight:600}
+.prog.hold{color:var(--gold,#F2C14E)}
