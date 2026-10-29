@@ -124,5 +124,6 @@ function show(o,[t1,t2,t3]){
 }
 
 window.HUD={startBg,renderMentor,ring,levelUp,MENTORS};
-if(document.readyState!=='loading')startBg();else document.addEventListener('DOMContentLoaded',startBg);
+// Particles start after the page has loaded and settled, so they don't compete with the first render.
+const bgLater=()=>setTimeout(startBg,3000);if(document.readyState==='complete')bgLater();else addEventListener('load',bgLater,{once:true});
 })();

@@ -1,4 +1,4 @@
-# ARETE v8.4 · Level up in real life
+# ARETE v8.5 · Level up in real life
 
 *Arete* is Greek for excellence. ARETE (formerly Hunter System) is an E → S rank transformation app that installs on your phone and works offline. Your data never leaves the phone.
 
@@ -11,6 +11,12 @@
 | **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
 | **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
 | **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
+
+## v8.5: Codex and sound
+- **Codex** (Body → Open the Codex): 12 short original pages, tagged by rank and reading time: fat loss basics, progressive overload, protein for Indian vegetarians, asthma-safe cardio, sleep, gas and bloating, form before load, scale vs waist, eating out, managing hunger, deload weeks, and getting to 8–10% safely. Filter by rank, read, tap **Mark as read** for +20 XP, then go to the next page. General education, not medical advice.
+- Your **mentor** recommends one unread page that fits the day (sleep on rest days, protein when you're low, asthma-safe cardio on a yellow day…).
+- **Sound effects** (Settings, off by default): short original tones for quest complete, level up, rank up and Gate cleared.
+- Faster start: the background particles and decorative animations begin a moment after the app opens, Today draws its top half first, and the Codex loads in the background. Lighthouse mobile (gzip, median of 3): Performance 93, Accessibility 100, Best Practices 100.
 
 ## v8.4: Hunter profile
 - **Five stats**, scored 0–100 from your real logs, on a radar (now vs 4 weeks ago):
@@ -211,6 +217,7 @@ Everything is stored on your phone only. Uninstalling the app or clearing Chrome
 | Mind ranks, library, skill tracks, money lessons | `js/mind.js` |
 | Wealth ranks, missions, categories | `js/wealth.js` |
 | Mission steps, weekly rhythm, parking lot | `js/mission.js` |
+| Codex articles | `js/codex.js` |
 | Stick-figure animations | `js/figures.js` (each figure is pose A ↔ pose B) |
 | Screens, tracking, reminders, timer | `js/app.js` |
 | Colours and fonts | top of `css/app.css` |

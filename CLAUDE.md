@@ -41,6 +41,13 @@ no backend, no tracking. Hosted on GitHub Pages from repo `Karma2025-reborn/Solo
   doses use the plan format (`3 × 8–12`, `3 × 30–60 s`, `20 min`); `openGate(rt)` builds blocks with
   `routineSession()`; `gateRun.rt` and `day.workout.routine` record which routine ran. CSS: roadmap `.rm*`,
   rival `.rl-*` (`.rv` is taken by the radar).
+- Codex (v8.5): articles live in `js/codex.js` (`window.CODEX`, blocks `p`/`h`/`ul`/`tip`), loaded on demand by
+  `loadCodex()` and in the background 2.5 s after boot; listed in `SHELL`. Original text only; health topics
+  carry "general education, not medical advice" and point to the doctor. Keys: `hunter:codexRead` `{id:date}`
+  (+20 XP each in `xpCalc`), `hunter:sfx` (sound effects, default off; `sfx()` synthesises tones with WebAudio).
+- Performance guard rails: `questsFor`/`dayScore` are cached per storage version; the first Today render is
+  split (`renderToday` top → `renderTodayRest` next task); background particles start 3 s after `load`;
+  decorative SVG/shine animations start after 2.5 s; background data loads must not trigger full re-renders.
 - "Hunter" as the *player's* title (e.g. "D-Rank Hunter", "Hunter stats") is game flavour, not the app name.
 - All art is original SVG drawn in code. No anime characters, likenesses, quotes or catchphrases.
   Mentors are our own: Kael, Garo, Sora, Ryn (`js/hud.js`).
@@ -75,6 +82,7 @@ no backend, no tracking. Hosted on GitHub Pages from repo `Karma2025-reborn/Solo
 | `js/diet.js` | Daily timeline, meals, diet rules |
 | `js/foods.js`, `js/foods_mh.js`, `js/foods_indb.js` | Food database. INDB (108 KB) is **not** in index.html: `loadINDB()` in app.js injects it 2.5 s after boot, or when Food / Settings opens or the search box is focused, then calls `window.addFoods()` |
 | `js/mind.js`, `js/wealth.js`, `js/mission.js` | Mind / Wealth / Mission data |
+| `js/codex.js` | Codex articles (lazy-loaded) |
 | `css/app.css` → `css/hud.css` → `css/arete.css` | Base styles, HUD theme, then the ARETE design layer (tokens, 44 px targets, Today components, onboarding) |
 | `fonts/` | Self-hosted Chakra Petch (headings) + Barlow (body) |
 | `icons/arete-icon.svg`, `icons/arete-maskable.svg` | Icon sources → `icon-192.png`, `icon-512.png`, `maskable-512.png` |
@@ -88,7 +96,7 @@ gold `#FFC857` for XP/rewards. Respect `prefers-reduced-motion` (hud.css turns a
 1. `node --check` every changed JS file.
 2. Test locally: `python -m http.server 8765`, open http://localhost:8765/ at 390 px width; console must be clean.
    All `<script>` tags are `defer`; keep it that way (first paint before JS). Lighthouse targets (mobile,
-   gzip like GitHub Pages): Performance ≥ 90, Accessibility ≥ 95. v8.0 measured 95 / 100.
+   gzip like GitHub Pages): Performance ≥ 90, Accessibility ≥ 95. v8.5 measured 93 / 100 (median of 3; this PC's load varies, so compare builds back to back).
 3. Bump `VERSION` in `sw.js` (`arete-vX.Y.Z`) **and** the version text at the bottom of Settings in `index.html`.
    Add any new file to `SHELL` in `sw.js`.
 4. Update `README.md` (what's new) and this file if rules/structure changed.

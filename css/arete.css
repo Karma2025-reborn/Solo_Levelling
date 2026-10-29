@@ -58,10 +58,10 @@ button.link{min-height:44px;display:inline-flex;align-items:center}
 @keyframes flick{0%,100%{transform:scaleY(1) rotate(-1.5deg)}50%{transform:scaleY(1.07) rotate(1.5deg)}}
 .xpbar{position:relative;height:14px;margin-top:var(--s2);background:#141a2e;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);overflow:hidden}
 .xpbar i{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,#B8862B,var(--gold) 60%,#FFF1C2);transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
-.xpbar i::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);background-size:220% 100%;animation:shine 2.6s linear infinite}
+.xpbar i{overflow:hidden}.xpbar i::after{content:"";position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55) 50%,transparent);transform:translateX(-120%);animation:shine 2.6s linear 2.5s infinite;will-change:transform}
 .xpbar::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),rgba(10,12,20,.85) calc(10% - 2px) 10%)}
 .xpbar.gain i{filter:brightness(1.35)}
-@keyframes shine{from{background-position:220% 0}to{background-position:-220% 0}}
+@keyframes shine{from{transform:translateX(-120%)}to{transform:translateX(320%)}}
 .sw-foot{margin-top:var(--s1)}
 
 /* ---------- Gate card ---------- */
@@ -69,9 +69,9 @@ button.link{min-height:44px;display:inline-flex;align-items:center}
   background:radial-gradient(ellipse 70% 90% at 0% 35%,rgba(79,216,255,.16),transparent 70%),linear-gradient(180deg,rgba(14,23,48,.96),rgba(8,13,28,.96))}
 .gate-art{width:96px;height:104px;display:grid;place-items:center}
 .gate-svg{width:96px;height:96px;overflow:visible;filter:drop-shadow(0 0 14px rgba(79,216,255,.55))}
-.gt-r1{transform-origin:60px 62px;animation:spin 26s linear infinite}
-.gt-r2{transform-origin:60px 62px;animation:spin 14s linear infinite reverse}
-.gt-core{transform-origin:60px 64px;animation:pulse 3s ease-in-out infinite}
+.gt-r1{transform-origin:60px 62px;animation:spin 26s linear 2.5s infinite}
+.gt-r2{transform-origin:60px 62px;animation:spin 14s linear 2.5s infinite reverse}
+.gt-core{transform-origin:60px 64px;animation:pulse 3s ease-in-out 2.5s infinite}
 .gate-b{min-width:0}
 .gate-t{font:700 var(--t-2xl)/1.05 var(--display);margin:6px 0 var(--s1);letter-spacing:.02em}
 .gate-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font:600 var(--t-sm) var(--body);color:var(--muted)}
@@ -475,6 +475,37 @@ label.ghost.ph-btn{background:rgba(79,216,255,.06);color:var(--cyan);border:1px 
 .rt-res small{display:block;font-size:12px;color:var(--muted)}
 .rt-res em{font:700 22px var(--display);font-style:normal;color:var(--cyan)}
 
+/* ---------- Codex (v8.5) ---------- */
+.cx-hd{display:grid;grid-template-columns:48px 1fr;gap:12px;align-items:center}
+.cx-ic svg{width:48px;height:48px;filter:drop-shadow(0 0 10px rgba(79,216,255,.5))}
+.cx-head .mtrack{margin-top:8px}
+.cx-f{margin:4px 0}
+.cx-list{display:flex;flex-direction:column;gap:8px}
+.cx-card{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:start;width:100%;min-height:44px;padding:14px 12px;text-align:left;font:inherit;color:var(--ink);cursor:pointer;
+  background:linear-gradient(180deg,rgba(14,23,48,.92),rgba(8,13,28,.92));border:1px solid rgba(79,216,255,.14)}
+.cx-card:active{transform:scale(.99)}
+.cx-r{width:40px;height:44px;display:grid;place-items:center;font:700 18px var(--display);color:#fff;background:linear-gradient(160deg,var(--violet),#3D7BFF);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.cx-card.later .cx-r{background:#1c2742;color:var(--muted)}
+.cx-b{display:flex;flex-direction:column;gap:4px;min-width:0}
+.cx-b b{font:700 17px/1.2 var(--display)}
+.cx-b small{font-size:var(--t-sm);color:var(--muted);line-height:1.4}
+.cx-m{font:600 11px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.cx-st i{font:700 14px var(--display);font-style:normal}
+.cx-card.read{border-color:rgba(46,242,160,.3)}
+.cx-art{padding:24px 18px}
+.cx-t{margin:4px 0 6px;font:700 30px/1.1 var(--display)}
+.cx-s{margin:0 0 16px;font-size:17px;color:var(--muted)}
+.cx-art>p{margin:0 0 14px;font-size:17px;line-height:1.65}
+.cx-h{margin:22px 0 10px;font:700 15px var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
+.cx-ul{margin:0 0 14px;padding-left:20px;font-size:16px;line-height:1.6}
+.cx-ul li{margin-bottom:6px}.cx-ul li::marker{color:var(--violet)}
+.cx-tip{margin:16px 0;padding:14px 16px;font-size:16px;line-height:1.55;background:rgba(255,200,87,.07);border-left:3px solid var(--gold)}
+.cx-end{display:flex;flex-direction:column;gap:10px;margin-top:24px;padding-top:16px;border-top:1px solid rgba(79,216,255,.12)}
+.mentor-cx{display:flex;align-items:center;gap:8px;margin-top:10px;min-height:44px;padding:6px 10px;text-align:left;font:600 14px var(--body);color:var(--ink);cursor:pointer;
+  background:rgba(139,92,255,.1);border:1px solid rgba(139,92,255,.4)}
+.mentor-cx span{font:700 10px var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--violet)}
+#codex-card .cue{margin:0}
+
 @media (max-width:380px){
   .gm-figrow{grid-template-columns:104px 1fr}.gm-fig{width:104px;height:92px}.gs-row{grid-template-columns:28px 1fr 1fr 64px;gap:6px}.gs-f input{font-size:20px}
   .gatewin{grid-template-columns:72px 1fr}.gate-art{width:72px;height:80px}.gate-svg{width:72px;height:72px}
@@ -485,3 +516,6 @@ label.ghost.ph-btn{background:rgba(79,216,255,.06);color:var(--cyan);border:1px 
   .aw-hex{stroke-dashoffset:0}.aw-a,.aw-intro .aw-big,.aw-intro .aw-sys,.aw-intro .aw-lead,.aw-intro button,.aw-intro .cue{opacity:1}
   .aw-scan{display:none}
 }
+
+/* mentor sigil: start after the first render settles */
+.mentor .emb .spin,.mentor .emb .spin2,.mentor .emb .pulse{animation-delay:2.5s}

@@ -70,6 +70,7 @@
 <section id="v-plan" class="view" hidden>
   <div class="t-actions left"><button type="button" class="ghost" id="open-timer">Rest timer</button></div>
   <section class="win" id="routines" aria-label="My routines"></section>
+  <section class="win" id="codex-card" aria-label="Codex"></section>
   <section class="win" id="cutcheck"></section>
   <section class="win">
     <div class="sys">[ System ] · Split program · sharp cuts by week 26</div>
@@ -372,6 +373,9 @@
   </section>
 </section>
 
+<!-- ======================= CODEX ======================= -->
+<section id="v-codex" class="view" hidden><div id="codex" class="pane"></div></section>
+
 <!-- ======================= SETTINGS ======================= -->
 <section id="v-settings" class="view" hidden>
   <div class="t-actions left"><button type="button" class="ghost small" data-back="today">‹ Back</button></div>
@@ -391,6 +395,7 @@
       <label class="check" for="s-hold"><input id="s-hold" type="checkbox"> Waiting for chest doctor review (swaps sprints, jumps and hard runs for steady cardio)</label>
       <label class="check" for="s-asthma"><input id="s-asthma" type="checkbox"> I have asthma (adds a daily breathing check and safer training cues)</label>
       <label class="check" for="s-supp"><input id="s-supp" type="checkbox"> Remind me about ashwagandha and magnesium</label>
+      <label class="check" for="s-sfx"><input id="s-sfx" type="checkbox"> Sound effects (quest complete, level up, rank up, Gate cleared)</label>
     </div>
     <div class="t-actions left" style="margin-top:12px"><button type="button" class="ghost" id="s-awaken">Replay System Awakening</button></div>
   </section>
@@ -451,7 +456,7 @@
     </ul>
     <button type="button" id="reset" class="danger" style="margin-top:12px">Erase all progress</button>
   </section>
-  <p class="cue center">ARETE · Level up in real life · v8.4 · works offline once installed</p>
+  <p class="cue center">ARETE · Level up in real life · v8.5 · works offline once installed</p>
 </section>
 </div>
 

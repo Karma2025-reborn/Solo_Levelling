@@ -38,7 +38,9 @@ function getDay(ds){return Object.assign({tl:{},water:0,q:{},workout:null},S.get
 function setDay(ds,o){S.set(dayKey(ds),o)}
 
 /* ---------- quests ---------- */
-function questsFor(ds){
+let _qc={v:-1,m:{}};
+function questsFor(ds){if(_qc.v!==SV)_qc={v:SV,m:{}};return _qc.m[ds]||(_qc.m[ds]=questsCalc(ds))}
+function questsCalc(ds){
   const p=posOf(parseYmd(ds)),sess=Plan.program(p.w,p.d),rec=getDay(ds);
   const tl=Diet.timeline(prof.gym,p.d,prof.diet,!!sess.rest,waterL(),prof.supps);
   const meals=tl.filter(t=>t.type==='meal'),mealsDone=meals.filter(t=>rec.tl[t.id]).length;
@@ -72,6 +74,7 @@ function xpTotal(){return memo('xp',xpCalc)}
 function xpCalc(){let xp=0;for(const ds of allDays()){const q=questsFor(ds);xp+=q.filter(x=>x.done).length*15;if(getDay(ds).workout)xp+=50;try{xp+=missionQuests(ds).filter(x=>x.done).length*10}catch(e){}}
   try{xp+=Object.keys(S.get('mdone',{})).length*100}catch(e){}
   xp+=S.get('tests',[]).filter(t=>t.passed).length*500;
+  xp+=Object.keys(S.get('codexRead',{})).length*20;
   try{const m0=mondayOf(parseYmd(prof.start)),now=mondayOf(new Date());for(let m=m0;m<=now;m=addDays(m,7))xp+=weeklyQuests(ymd(m)).filter(x=>x.done).reduce((a,x)=>a+x.xp,0)}catch(e){}
   return xp}
 function streak(){return memo('streak',streakCalc)}
@@ -106,14 +109,15 @@ const HEX={warm:'#F2C14E',strength:'#6E97FF',cardio:'#FF8D52',core:'#3DDC97',str
 /* =================================================================
    HEADER
    ================================================================= */
+let badgeT=0;
 function header(){
   const p=posOf(new Date()),st=Plan.stageOf(p.w),r=earnedRank();
   $('rank').textContent=r;
   $('ranksub').textContent=p.days<0?`Starts ${prof.start}`:`Week ${Math.min(p.w,999)} · ${st.name.split(' · ')[1]||st.name}`;
   const xp=xpTotal(),lv=Math.floor(xp/1000)+1;
   $('lv').textContent=lv;
-  const seen=S.get('lvseen',0);if(!seen)S.set('lvseen',lv);else if(lv>seen){S.set('lvseen',lv);if(window.HUD)HUD.levelUp('[ SYSTEM ]','LEVEL UP',`You reached level ${lv}. Keep going, Hunter.`)}
-  try{checkBadges()}catch(e){}
+  const seen=S.get('lvseen',0);if(!seen)S.set('lvseen',lv);else if(lv>seen){S.set('lvseen',lv);if(window.HUD)HUD.levelUp('[ SYSTEM ]','LEVEL UP',`You reached level ${lv}. Keep going, Hunter.`);sfx('level')}
+  if(!badgeT)badgeT=setTimeout(()=>{badgeT=0;try{checkBadges()}catch(e){}},400);
 }
 
 /* =================================================================
@@ -121,19 +125,27 @@ function header(){
    ================================================================= */
 function renderToday(){
   const now=new Date(),ds=ymd(now),p=posOf(now),sess=Plan.program(p.w,p.d),rec=getDay(ds),st=Plan.stageOf(p.w);
-  const tl=Diet.timeline(prof.gym,p.d,prof.diet,!!sess.rest,waterL(),prof.supps);
-  const hm=now.getHours()*60+now.getMinutes();
-  const nxt=tl.find(t=>{const [h,m]=t.time.split(':').map(Number);return h*60+m>=hm&&!rec.tl[t.id]})||null;
   const ql=questsFor(ds),qd=ql.filter(q=>q.done).length,ft=totals(ds),T=targets();
   renderStatusWin(p,st);
   renderPenalty();
   renderGate(p,sess,rec,st);
   renderBreath();
   renderQuick(rec,ft,T);
+  renderDaily(ds,ql,qd);
+  if(firstToday){firstToday=false;setTimeout(()=>renderTodayRest(),0);return}
+  renderTodayRest();
+}
+let firstToday=true;
+function renderDaily(ds,ql,qd){
   // daily quests
   $('daily').innerHTML=`<div class="wh"><h3 class="sub">Daily quests</h3><span class="qcount${qd===ql.length?' all':''}"><b>${qd}</b>/${ql.length}</span></div>
    <p class="cue">+15 XP each · resets at midnight${dayScore(ds)>=0.8?' · <b class="okc">streak secured today</b>':` · ${Math.max(0,Math.ceil(ql.length*0.8)-qd)} more keeps your streak`}</p>
    <div class="quests">${ql.map(q=>`<label class="q${q.auto?' auto':''}${q.id===justTick?' just':''}"><input type="checkbox" data-quest="${q.id}" ${q.done?'checked':''} ${q.auto?'disabled':''}><span>${esc(q.t)}<small>${esc(q.s)}${q.auto?' · ticks itself':''}</small></span></label>`).join('')}</div>${habitPanel()}`;
+}
+function renderTodayRest(){
+  const now=new Date(),ds=ymd(now),p=posOf(now),sess=Plan.program(p.w,p.d),rec=getDay(ds),st=Plan.stageOf(p.w),ft=totals(ds),T=targets();
+  const tl=Diet.timeline(prof.gym,p.d,prof.diet,!!sess.rest,waterL(),prof.supps),hm=now.getHours()*60+now.getMinutes();
+  const nxt=tl.find(t=>{const [h,m]=t.time.split(':').map(Number);return h*60+m>=hm&&!rec.tl[t.id]})||null;
   renderWeekly();
   // mentor
   if(window.HUD){const h=now.getHours();let order='';
@@ -142,7 +154,8 @@ function renderToday(){
     else if(ft.p<T.p*0.6&&h>=14)order=`Protein is at ${Math.round(ft.p)} g. Add whey, eggs, paneer or soya.`;
     else if(!sess.rest&&!rec.workout)order=`The ${sess.t} Gate is still open.`;
     else order='Sleep by 10:30. Growth happens tonight.';
-    HUD.renderMentor($('mentor'),{date:ds,sessT:sess.t,rest:!!sess.rest,order})}
+    HUD.renderMentor($('mentor'),{date:ds,sessT:sess.t,rest:!!sess.rest,order});
+    mentorCodex({rest:!!sess.rest,sessT:sess.t,light:prof.asthma&&rec.breath==='y',lowP:ft.p<T.p*0.6&&h>=12})}
   renderMissionToday();
   // day plan (folded)
   const fold=$('tl-fold');if(fold&&!fold.dataset.init){fold.dataset.init=1;fold.open=S.get('tlOpen',false);fold.addEventListener('toggle',()=>S.set('tlOpen',fold.open))}
@@ -232,7 +245,7 @@ function renderQuick(rec,ft,T){
 function addFoodOn(ds,k,q,m){const a=foodLog(ds);a.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),f:k,q:q||1,m:m||mealNow()});setFoodLog(ds,a)}
 document.addEventListener('change',e=>{
   const t=e.target,ds=todayStr();
-  if(t.dataset.quest){const r=getDay(ds);r.q[t.dataset.quest]=t.checked;setDay(ds,r);if(t.checked){buzz(15);justTick=t.dataset.quest}renderToday();justTick=null}
+  if(t.dataset.quest){const r=getDay(ds);r.q[t.dataset.quest]=t.checked;setDay(ds,r);if(t.checked){buzz(15);sfx('quest');justTick=t.dataset.quest}renderToday();justTick=null}
   if(t.dataset.tl){const r=getDay(ds);r.tl[t.dataset.tl]=t.checked;const ml=+t.dataset.ml||0;if(ml)r.water=Math.max(0,r.water+(t.checked?ml:-ml));setDay(ds,r);renderToday()}
 });
 document.addEventListener('click',e=>{
@@ -395,7 +408,7 @@ $('test-form').addEventListener('submit',e=>{
   const ev=evalTest(nr,res),met=ev.filter(x=>x.ok).length,passed=met===ev.length;
   const tests=S.get('tests',[]);tests.push({date:todayStr(),rank:nr,res,met,total:ev.length,passed});S.set('tests',tests);
   if(res.wt||res.waist){const rows=S.get('log',[]).filter(r=>r.date!==todayStr());rows.push({date:todayStr(),wt:res.wt??null,waist:res.waist??null});S.set('log',rows)}
-  if(passed){S.set('rank',nr);$('rankup-r').textContent=nr;$('rankup-t').textContent=`You are now a ${nr}-Rank Hunter. +500 XP`;$('rankup').hidden=false}
+  if(passed){sfx('rank');S.set('rank',nr);$('rankup-r').textContent=nr;$('rankup-t').textContent=`You are now a ${nr}-Rank Hunter. +500 XP`;$('rankup').hidden=false}
   else $('test-msg').textContent=`${met} of ${ev.length} requirements met. Keep training and test again in 2–4 weeks.`;
   renderStatus();header();
 });
@@ -471,7 +484,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(tRun)t
 /* =================================================================
    SETTINGS
    ================================================================= */
-function fillSettings(){$('s-name').value=prof.name||'';$('s-goal').value=prof.goal||'cut';$('s-asthma').checked=!!prof.asthma;$('s-hold').checked=!!prof.medHold;$('s-age').value=prof.age||'';$('s-wt').value=prof.wt;$('s-ht').value=prof.ht;$('s-start').value=prof.start;$('s-diet').value=prof.diet;$('s-gym').value=prof.gym;$('s-supp').checked=!!prof.supps;renderGcal()}
+function fillSettings(){$('s-sfx').checked=!!S.get('sfx',false);$('s-name').value=prof.name||'';$('s-goal').value=prof.goal||'cut';$('s-asthma').checked=!!prof.asthma;$('s-hold').checked=!!prof.medHold;$('s-age').value=prof.age||'';$('s-wt').value=prof.wt;$('s-ht').value=prof.ht;$('s-start').value=prof.start;$('s-diet').value=prof.diet;$('s-gym').value=prof.gym;$('s-supp').checked=!!prof.supps;renderGcal()}
 $('s-wt').onchange=()=>{const v=parseFloat($('s-wt').value);if(v>=35&&v<=200){prof.wt=v;saveProf();refresh()}};
 $('s-age').onchange=()=>{const v=parseInt($('s-age').value);if(v>=15&&v<=90){prof.age=v;saveProf();refresh()}};
 $('s-ht').onchange=()=>{const v=parseFloat($('s-ht').value);if(v>=120&&v<=220){prof.ht=v;saveProf();refresh()}};
@@ -483,6 +496,7 @@ $('s-asthma').onchange=()=>{prof.asthma=$('s-asthma').checked;saveProf();refresh
 $('s-supp').onchange=()=>{prof.supps=$('s-supp').checked;saveProf();renderGcal();refresh()};
 $('s-name').onchange=()=>{prof.name=$('s-name').value.trim().slice(0,24);saveProf();refresh()};
 $('s-goal').onchange=()=>{prof.goal=$('s-goal').value;saveProf();refresh()};
+$('s-sfx').onchange=()=>{S.set('sfx',$('s-sfx').checked);if($('s-sfx').checked)sfx('level');toast($('s-sfx').checked?'Sound effects on':'Sound effects off')};
 $('s-awaken').onclick=()=>{S.del('onboarded');showAwakening()};
 
 /* ---------- reminders ---------- */
@@ -1119,6 +1133,7 @@ const VLEVELS=[
  {h:'Week 7+ · Endurance',sets:'3 sets × 10 squeezes, hold 10 s, relax 10 s · then 20 quick flicks'}];
 function renderBodyCards(){
   renderRoutines();
+  renderCodexCard();
   renderCareCards();
   renderHealth();
   const lv=VLEVELS[vitalityLevel()];
@@ -1604,7 +1619,7 @@ function finishGate(){
     ${prs.length?`<div class="gc-prs"><p class="k">New personal records</p>${prs.map(([n,v,d])=>`<div class="gc-pr"><span class="gc-badge">PR</span><span><b>${esc(n)}</b><small>${esc(v)}</small></span><em>${esc(d)}</em></div>`).join('')}</div>`
       :'<p class="cue">No new records today. Beat one number next time.</p>'}</div>`;
   $('gm-nav').innerHTML='<button type="button" class="primary big" data-g="close">Return</button>';
-  buzz([40,60,40,60,140]);
+  buzz([40,60,40,60,140]);sfx('gate');
   const el=$('gc-xp'),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(reduce||!gained)el.textContent=gained;else{const t0=performance.now();const step=t=>{const k=Math.min(1,(t-t0)/1200);el.textContent=Math.round(gained*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(step)};setTimeout(()=>requestAnimationFrame(step),450)}
 }
@@ -1885,7 +1900,7 @@ function renderPenalty(){
      `<label class="q"><input type="checkbox" data-pen="${k}" ${pen[k]?'checked':''}><span>${t}<small>${s}</small></span></label>`).join('')}</div>`;
 }
 document.addEventListener('change',e=>{const t=e.target;if(!t.dataset.pen)return;const ds=todayStr(),r=getDay(ds);r.pen=r.pen||{};r.pen[t.dataset.pen]=t.checked;setDay(ds,r);
-  if(r.pen.walk&&r.pen.squat){const ps=penaltyState();if(ps){S.set('forgiven',[...new Set([...S.get('forgiven',[]),...ps.days])]);buzz([40,40,120]);
+  if(r.pen.walk&&r.pen.squat){const ps=penaltyState();if(ps){S.set('forgiven',[...new Set([...S.get('forgiven',[]),...ps.days])]);buzz([40,40,120]);sfx('rank');
     if(window.HUD)HUD.levelUp('[ SYSTEM ]','RESTORED',`Penalty cleared. Your ${ps.n}-day streak is back.`)}}
   renderToday()});
 
@@ -1940,7 +1955,7 @@ const BADGE_SVG=(on)=>`<svg viewBox="0 0 48 52" aria-hidden="true"><polygon poin
 function checkBadges(){
   const m=badgeMetrics(),had=S.get('badges',null),got=had?{...had}:{},fresh=[];
   BADGES.forEach(([id,n])=>{const [v,t]=BADGES.find(b=>b[0]===id)[3](m);if(v>=t&&!got[id]){got[id]=todayStr();fresh.push(n)}});
-  if(!fresh.length&&had)return;S.set('badges',got);if(!fresh.length||!window.HUD)return;
+  if(!fresh.length&&had)return;S.set('badges',got);if(!fresh.length||!window.HUD)return;sfx('level');
   if(!had)HUD.levelUp('[ SYSTEM ]',fresh.length>1?'TITLES':'TITLE',`${fresh.length} unlocked from your history: ${fresh.join(', ')}. Equip one in Stats.`);
   else fresh.forEach(n=>HUD.levelUp('[ TITLE UNLOCKED ]',n.toUpperCase(),'Equip it in Stats → Status to show it on your status window.'));
 }
@@ -2075,6 +2090,69 @@ $('routines')&&$('routines').addEventListener('click',e=>{
 $('routines')&&$('routines').addEventListener('input',e=>{if(e.target.id==='rt-q'){rtQ=e.target.value;const pos=e.target.selectionStart;if(rtEdit){const n=$('rt-n');if(n)rtEdit.n=n.value;rtEdit.items.forEach((_,i)=>rtDose(i))}renderRoutines();const q=$('rt-q');q.focus();try{q.setSelectionRange(pos,pos)}catch(x){}}});
 
 /* =================================================================
+   CODEX (v8.5) — short original articles (js/codex.js, loaded on demand)
+   + optional sound effects (off by default). Keys: hunter:codexRead {id:date}, hunter:sfx
+   ================================================================= */
+let codexP=null,codexOpen=null,codexF='All';
+function loadCodex(){if(window.CODEX)return Promise.resolve();if(codexP)return codexP;
+  codexP=new Promise(res=>{const s=document.createElement('script');s.src='js/codex.js';s.onload=()=>res();s.onerror=()=>{codexP=null;res()};document.head.appendChild(s)});return codexP}
+function codexRead(){return S.get('codexRead',{})}
+function cxMins(a){const w=a.b.reduce((n,[,x])=>n+(Array.isArray(x)?x.join(' '):x).split(/\s+/).length,0);return Math.max(1,Math.ceil(w/180))}
+const CX_ICON=`<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 10c-5-4-12-4-18-2v30c6-2 13-2 18 2 5-4 12-4 18-2V8c-6-2-13-2-18 2z" fill="none" stroke="url(#ag-e)" stroke-width="2.5" stroke-linejoin="round"/><path d="M24 10v30" stroke="url(#ag-e)" stroke-width="2"/><path d="M11 16h8M11 22h8M29 16h8M29 22h8" stroke="#4FD8FF" stroke-width="1.5" opacity=".6"/></svg>`;
+async function renderCodex(){
+  const el=$('codex');
+  if(!window.CODEX){el.innerHTML='<section class="win"><p class="cue">Opening the Codex…</p></section>';await loadCodex();
+    if(!window.CODEX){el.innerHTML='<section class="win"><p class="cue">The Codex could not load. Open it once with internet, then it works offline.</p></section>';return}}
+  if(codexOpen){const a=window.CODEX.find(x=>x.id===codexOpen);if(a)return renderArticle(a);codexOpen=null}
+  const read=codexRead(),all=window.CODEX,ri=RANKS.indexOf(earnedRank()),n=all.filter(a=>read[a.id]).length;
+  const ranks=['All',...RANKS.filter(r=>all.some(a=>a.r===r))];if(!ranks.includes(codexF))codexF='All';
+  const list=all.filter(a=>codexF==='All'||a.r===codexF);
+  el.innerHTML=`<section class="win cx-head"><div class="cx-hd"><span class="cx-ic">${CX_ICON}</span><div><span class="k">[ System ] · Knowledge</span><h2 class="vh" style="margin:2px 0 0">Codex</h2></div></div>
+    <p class="cue">Short pages on training, food and recovery. +20 XP for each page you finish.</p>
+    <div class="wh" style="margin-top:12px"><span class="k">${n} of ${all.length} pages read</span><span class="cue">${all.length-n?`${(all.length-n)*20} XP waiting`:'All read'}</span></div>
+    <div class="mtrack"><i style="width:${n/all.length*100}%;background:linear-gradient(90deg,var(--violet),var(--cyan))"></i></div></section>
+   <div class="seg cx-f" role="group" aria-label="Rank">${ranks.map(r=>`<button type="button" data-cxf="${r}" aria-pressed="${r===codexF}">${r==='All'?'All':r+'-Rank'}</button>`).join('')}</div>
+   <div class="cx-list">${list.map(a=>{const ar=RANKS.indexOf(a.r),later=ar>ri;
+     return `<button type="button" class="cx-card${read[a.id]?' read':''}${later?' later':''}" data-codex="${a.id}">
+       <span class="cx-r" aria-hidden="true">${a.r}</span><span class="cx-b"><b>${esc(a.t)}</b><small>${esc(a.s)}</small>
+       <span class="cx-m">${cxMins(a)} min · ${esc(a.tags.join(' · '))}${later?` · for ${a.r}-Rank`:''}</span></span>
+       <span class="cx-st">${read[a.id]?'<i class="okc">✓</i>':'<i class="goldc">+20</i>'}</span></button>`}).join('')}</div>
+   <p class="cue center">General education, not medical advice. Follow your doctor for asthma and health conditions.</p>`;
+}
+function renderArticle(a){
+  const el=$('codex'),all=window.CODEX,i=all.indexOf(a),read=codexRead()[a.id],nx=all[i+1];
+  const blk=([t,x])=>t==='h'?`<h3 class="cx-h">${esc(x)}</h3>`:t==='ul'?`<ul class="cx-ul">${x.map(y=>`<li>${esc(y)}</li>`).join('')}</ul>`:t==='tip'?`<p class="cx-tip">${esc(x)}</p>`:`<p>${esc(x)}</p>`;
+  el.innerHTML=`<div class="t-actions left"><button type="button" class="ghost small" data-cx="list">‹ Codex</button></div>
+   <article class="win cx-art"><p class="gm-tag" style="--c:var(--violet)">${a.r}-Rank · ${esc(a.tags.join(' · '))} · ${cxMins(a)} min</p>
+    <h2 class="cx-t">${esc(a.t)}</h2><p class="cx-s">${esc(a.s)}</p>${a.b.map(blk).join('')}
+    <div class="cx-end">${read?`<p class="okc"><b>✓ Read</b> on ${read}</p>`:`<button type="button" class="primary big" data-cx="done">Mark as read · +20 XP</button>`}
+     ${nx?`<button type="button" class="ghost" data-codex="${nx.id}">Next: ${esc(nx.t)} ›</button>`:''}</div></article>`;
+  window.scrollTo(0,0);
+}
+$('codex').addEventListener('click',e=>{const f=e.target.closest('[data-cxf]');if(f){codexF=f.dataset.cxf;renderCodex();return}
+  const c=e.target.closest('[data-cx]');if(!c)return;
+  if(c.dataset.cx==='list'){codexOpen=null;renderCodex();window.scrollTo(0,0)}
+  if(c.dataset.cx==='done'&&codexOpen){const r=codexRead();if(!r[codexOpen]){r[codexOpen]=todayStr();S.set('codexRead',r);toast('Page read · +20 XP');buzz(15);sfx('quest');header()}renderCodex()}});
+document.addEventListener('click',e=>{const c=e.target.closest('[data-codex]');if(!c)return;codexOpen=c.dataset.codex;if(S.get('view','today')!=='codex')showView('codex');else renderCodex()});
+function renderCodexCard(){const el=$('codex-card');if(!el)return;
+  const n=Object.keys(codexRead()).length;
+  el.innerHTML=`<div class="cx-hd"><span class="cx-ic">${CX_ICON}</span><div><h3 class="sub">Codex</h3><p class="cue" style="margin:4px 0 0">Short pages: fat loss, progressive overload, veg protein, asthma-safe cardio, sleep, bloating and more.${n?` ${n} read.`:''}</p></div></div>
+   <button type="button" class="ghost" style="width:100%;margin-top:12px" data-cx-open>Open the Codex</button>`}
+document.addEventListener('click',e=>{if(e.target.closest('[data-cx-open]')){codexOpen=null;showView('codex')}});
+// mentor recommends one unread page that fits the day
+function codexPick(ctx){if(!window.CODEX)return null;const read=codexRead(),ri=RANKS.indexOf(earnedRank()),pref=[];
+  if(ctx.light)pref.push('asthmacardio');if(ctx.rest)pref.push('sleep');if(ctx.lowP)pref.push('vegprotein');if(/chest|back|leg|arm|shoulder/i.test(ctx.sessT||''))pref.push('overload','formfirst');
+  window.CODEX.filter(a=>RANKS.indexOf(a.r)<=ri).forEach(a=>pref.push(a.id));
+  const id=pref.find(x=>!read[x]&&window.CODEX.some(a=>a.id===x));return id?window.CODEX.find(a=>a.id===id):null}
+function mentorCodex(ctx){const box=$('mentor')&&$('mentor').querySelector('.mentor > div:last-child');if(!box)return;const a=codexPick(ctx);if(!a)return;
+  box.insertAdjacentHTML('beforeend',`<button type="button" class="mentor-cx" data-codex="${a.id}"><span>Codex</span>${esc(a.t)} · ${cxMins(a)} min</button>`)}
+
+/* ---------- sound effects (synthesised, original; off by default) ---------- */
+const SFX={quest:[[660,0,.1],[990,.08,.16]],level:[[523,0,.13],[659,.11,.13],[784,.22,.13],[1047,.33,.35]],rank:[[392,0,.2],[523,.16,.2],[659,.32,.2],[784,.48,.55]],gate:[[440,0,.12],[660,.11,.12],[880,.22,.4]]};
+function sfx(k){if(!S.get('sfx',false))return;try{audio();const t0=actx.currentTime+.02;(SFX[k]||[]).forEach(([f,o,d])=>{const os=actx.createOscillator(),g=actx.createGain();os.type='triangle';os.frequency.value=f;os.connect(g);g.connect(actx.destination);
+  g.gain.setValueAtTime(.0001,t0+o);g.gain.exponentialRampToValueAtTime(.16,t0+o+.02);g.gain.exponentialRampToValueAtTime(.0001,t0+o+d);os.start(t0+o);os.stop(t0+o+d+.05)})}catch(e){}}
+
+/* =================================================================
    GOAL + LAZY FOOD DATABASE
    ================================================================= */
 const GOALS={cut:'Fat loss',strength:'Strength',both:'Recomp'};
@@ -2083,7 +2161,7 @@ let indbP=null;
 function loadINDB(){
   if(window.FOODS_INDB)return Promise.resolve();if(indbP)return indbP;
   indbP=new Promise(res=>{const s=document.createElement('script');s.src='js/foods_indb.js';
-    s.onload=()=>{window.addFoods(window.FOODS_INDB);SV++;res();const v=S.get('view','today');if(v==='food')renderFood();else if(v==='today')renderToday()};
+    s.onload=()=>{window.addFoods(window.FOODS_INDB);SV++;res();const v=S.get('view','today');if(v==='food')renderFood();else if(v==='today'&&foodLog(todayStr()).some(e=>e.f[0]==='i'))renderToday()};
     s.onerror=()=>{indbP=null;res()};document.head.appendChild(s)});
   return indbP;
 }
@@ -2160,9 +2238,9 @@ function showAwakening(){
 /* =================================================================
    NAV + BOOT
    ================================================================= */
-const VIEWS=['today','plan','food','mission','mind','wealth','status','timer','settings'];
-function showView(v){VIEWS.forEach(x=>{$('v-'+x).hidden=x!==v;const tb=$('tab-'+x);if(tb)tb.setAttribute('aria-current',x===v||(v==='timer'&&x==='plan')?'page':'false')});S.set('view',v);window.scrollTo(0,0);
-  if(v==='today')renderToday();if(v==='plan')renderPlan();if(v==='food'){foodDate=todayStr();foodMeal=mealNow();renderFood();loadINDB()}if(v==='settings')loadINDB();if(v==='mind')renderMind();if(v==='wealth')renderWealth();if(v==='mission')renderMission();if(v==='plan')renderBodyCards();if(v==='status')renderStatus();}
+const VIEWS=['today','plan','food','mission','mind','wealth','status','timer','settings','codex'];
+function showView(v){VIEWS.forEach(x=>{$('v-'+x).hidden=x!==v;const tb=$('tab-'+x);if(tb)tb.setAttribute('aria-current',x===v||((v==='timer'||v==='codex')&&x==='plan')?'page':'false')});S.set('view',v);window.scrollTo(0,0);
+  if(v==='today')renderToday();if(v==='plan')renderPlan();if(v==='food'){foodDate=todayStr();foodMeal=mealNow();renderFood();loadINDB()}if(v==='settings')loadINDB();if(v==='mind')renderMind();if(v==='wealth')renderWealth();if(v==='mission')renderMission();if(v==='plan')renderBodyCards();if(v==='status')renderStatus();if(v==='codex')renderCodex();}
 VIEWS.forEach(v=>{const tb=$('tab-'+v);if(tb)tb.addEventListener('click',()=>showView(v))});
 $('btn-settings').onclick=()=>showView('settings');$('adv-mind').onclick=()=>showView('mind');$('adv-wealth').onclick=()=>showView('wealth');
 $('s-t38').value=targetDate();$('s-t38').onchange=()=>{if($('s-t38').value){S.set('target38',$('s-t38').value);toast('Target date saved')}};$('open-timer').onclick=()=>showView('timer');
@@ -2223,5 +2301,5 @@ fillSettings();drawTimer();showView(VIEWS.includes(qv)?qv:S.get('view','today'))
 if(needsAwakening())showAwakening();
 setInterval(()=>{checkReminders();if(!document.hidden&&S.get('view','today')==='today')renderToday()},60000);
 checkReminders();
-setTimeout(()=>loadINDB(),2500);
+setTimeout(()=>{loadINDB();loadCodex().then(()=>{if(S.get('view','today')==='today'&&!document.querySelector('#mentor .mentor-cx')){const n=new Date(),p=posOf(n),sess=Plan.program(p.w,p.d),ft=totals(todayStr());mentorCodex({rest:!!sess.rest,sessT:sess.t,light:prof.asthma&&getDay(todayStr()).breath==='y',lowP:ft.p<targets().p*0.6&&n.getHours()>=12})}})},2500);
 })();

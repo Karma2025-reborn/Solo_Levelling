@@ -3,8 +3,8 @@
    Update flow: a new version installs in the background and waits. The page
    shows "New version available"; tapping it sends SKIP_WAITING, the new worker
    takes over and the page reloads once. */
-const VERSION = 'arete-v8.4.0';
-const SHELL = ['./', 'index.html', 'css/app.css', 'css/hud.css', 'css/arete.css', 'js/hud.js', 'fonts/chakra-petch-latin-500-normal.woff2', 'fonts/chakra-petch-latin-600-normal.woff2', 'fonts/chakra-petch-latin-700-normal.woff2', 'fonts/barlow-latin-400-normal.woff2', 'fonts/barlow-latin-500-normal.woff2', 'fonts/barlow-latin-600-normal.woff2', 'js/figures.js', 'js/exercises.js', 'js/program.js', 'js/diet.js', 'js/foods_mh.js', 'js/foods_indb.js', 'js/foods.js', 'js/mind.js', 'js/wealth.js', 'js/mission.js', 'js/app.js', 'manifest.json',
+const VERSION = 'arete-v8.5.0';
+const SHELL = ['./', 'index.html', 'css/app.css', 'css/hud.css', 'css/arete.css', 'js/hud.js', 'fonts/chakra-petch-latin-500-normal.woff2', 'fonts/chakra-petch-latin-600-normal.woff2', 'fonts/chakra-petch-latin-700-normal.woff2', 'fonts/barlow-latin-400-normal.woff2', 'fonts/barlow-latin-500-normal.woff2', 'fonts/barlow-latin-600-normal.woff2', 'js/figures.js', 'js/exercises.js', 'js/program.js', 'js/diet.js', 'js/foods_mh.js', 'js/foods_indb.js', 'js/foods.js', 'js/mind.js', 'js/wealth.js', 'js/mission.js', 'js/codex.js', 'js/app.js', 'manifest.json',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/favicon.svg'];
 
 // Cache each file on its own so one missing file can't block an update.
