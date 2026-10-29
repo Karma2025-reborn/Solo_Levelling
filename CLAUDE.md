@@ -24,6 +24,10 @@ no backend, no tracking. Hosted on GitHub Pages from repo `Karma2025-reborn/Solo
   asthma light day.
 - Stage names are original: E Awakening · D The Forge · C Proving Ground · B Refinement · A Ascent · S Apex.
   Don't reintroduce anime terms (Arise, Shadow Monarch, Dungeon, "Daily Quest 100/100/100/10 km" …).
+- Progress (v8.2, "PROGRESS" section of `js/app.js`) only *reads* existing logs. New keys: `hunter:statPane`,
+  `hunter:phPose`. Photos are in IndexedDB database `arete-photos`, store `photos`
+  `{id,date,pose,blob(JPEG ≤1280 px),w,h,at}` — never sent anywhere, not part of the localStorage backup,
+  not removed by Start fresh. Muscle groups for charts/records come from `muscleOf()` (EX[k].m keywords).
 - "Hunter" as the *player's* title (e.g. "D-Rank Hunter", "Hunter stats") is game flavour, not the app name.
 - All art is original SVG drawn in code. No anime characters, likenesses, quotes or catchphrases.
   Mentors are our own: Kael, Garo, Sora, Ryn (`js/hud.js`).

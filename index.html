@@ -256,22 +256,17 @@
 
 <!-- ======================= STATUS ======================= -->
 <section id="v-status" class="view" hidden>
+  <div class="panetabs" id="st-tabs" role="tablist" aria-label="Stats sections">
+    <button type="button" role="tab" data-pane="status">Status</button>
+    <button type="button" role="tab" data-pane="records">Records</button>
+    <button type="button" role="tab" data-pane="calendar">Calendar</button>
+    <button type="button" role="tab" data-pane="charts">Charts</button>
+    <button type="button" role="tab" data-pane="photos">Photos</button>
+  </div>
+
+  <!-- STATUS: status window, rank, tests -->
+  <div class="pane" data-pane="status" role="tabpanel">
   <section class="win dash" id="dash"></section>
-  <section class="win" id="actlog"></section>
-  <section class="win">
-    <details><summary><h3 class="sub" style="display:inline">Stat check (every 2 weeks, 15 min)</h3></summary>
-    <p class="cue">Do these fresh, before a workout, 3 min rest between each. Fill in only what you did. Resting heart rate: count your pulse for 30 s right after waking, then double it.</p>
-    <form id="check-form" class="logform">
-      <label for="check-date">Date<input id="check-date" type="date" required></label>
-      <label for="ck-push">Push-ups, one set<input id="ck-push" type="number" inputmode="numeric" min="0" step="1"></label>
-      <label for="ck-pull">Pull-ups (0 if none)<input id="ck-pull" type="number" inputmode="numeric" min="0" step="1"></label>
-      <label for="ck-plank">Plank hold (s)<input id="ck-plank" type="number" inputmode="numeric" min="0" step="1"></label>
-      <label for="ck-burpee">Burpees in 1 min<input id="ck-burpee" type="number" inputmode="numeric" min="0" step="1"></label>
-      <label for="ck-run">2 km walk/run (min)<input id="ck-run" type="number" inputmode="decimal" min="0" step="0.1"></label>
-      <label for="ck-rhr">Resting heart rate (bpm)<input id="ck-rhr" type="number" inputmode="numeric" min="30" max="130" step="1"></label>
-      <button type="submit" class="primary">Save stat check</button>
-    </form><p class="cue" id="check-msg" role="status"></p></details>
-  </section>
   <section class="win rankcard" id="rankcard"></section>
   <section class="win">
     <h3 class="sub">Hunter stats</h3>
@@ -290,6 +285,39 @@
     <p id="test-msg" class="cue" role="status"></p>
   </section>
   <section class="win">
+    <details><summary><h3 class="sub" style="display:inline">Stat check (every 2 weeks, 15 min)</h3></summary>
+    <p class="cue">Do these fresh, before a workout, 3 min rest between each. Fill in only what you did. Resting heart rate: count your pulse for 30 s right after waking, then double it.</p>
+    <form id="check-form" class="logform">
+      <label for="check-date">Date<input id="check-date" type="date" required></label>
+      <label for="ck-push">Push-ups, one set<input id="ck-push" type="number" inputmode="numeric" min="0" step="1"></label>
+      <label for="ck-pull">Pull-ups (0 if none)<input id="ck-pull" type="number" inputmode="numeric" min="0" step="1"></label>
+      <label for="ck-plank">Plank hold (s)<input id="ck-plank" type="number" inputmode="numeric" min="0" step="1"></label>
+      <label for="ck-burpee">Burpees in 1 min<input id="ck-burpee" type="number" inputmode="numeric" min="0" step="1"></label>
+      <label for="ck-run">2 km walk/run (min)<input id="ck-run" type="number" inputmode="decimal" min="0" step="0.1"></label>
+      <label for="ck-rhr">Resting heart rate (bpm)<input id="ck-rhr" type="number" inputmode="numeric" min="30" max="130" step="1"></label>
+      <button type="submit" class="primary">Save stat check</button>
+    </form><p class="cue" id="check-msg" role="status"></p></details>
+  </section>
+  <section class="win">
+    <h3 class="sub">Rank test history</h3>
+    <div id="test-history" class="cue">No tests yet.</div>
+  </section>
+  </div>
+
+  <!-- RECORDS: personal records per exercise -->
+  <div class="pane" data-pane="records" role="tabpanel" hidden>
+  <section class="win" id="records"></section>
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="pane" data-pane="calendar" role="tabpanel" hidden>
+  <section class="win" id="cal"></section>
+  <section class="win" id="cal-day" aria-live="polite"></section>
+  </div>
+
+  <!-- CHARTS: body, volume, food, cardio, strength -->
+  <div class="pane" data-pane="charts" role="tabpanel" hidden>
+  <section class="win">
     <h3 class="sub">Body log</h3>
     <form id="log-form" class="logform">
       <label for="log-date">Date<input id="log-date" type="date" required></label>
@@ -301,6 +329,9 @@
   </section>
   <section class="win chartbox" id="chart-waist"></section>
   <section class="win chartbox" id="chart-wt"></section>
+  <section class="win chartbox" id="chart-vol"></section>
+  <section class="win chartbox" id="chart-fuel"></section>
+  <section class="win" id="actlog"></section>
   <section class="win chartbox">
     <div class="chart-head"><span class="k">Strength · estimated 1-rep max</span>
       <div class="seg" id="lift-pick"></div></div>
@@ -310,10 +341,13 @@
     <h3 class="sub">Body log entries</h3>
     <div class="tablewrap"><table class="logt"><thead><tr><th>Date</th><th>kg</th><th>Waist cm</th><th><span class="sr">Delete</span></th></tr></thead><tbody id="log-list"></tbody></table></div>
   </section>
-  <section class="win">
-    <h3 class="sub">Rank test history</h3>
-    <div id="test-history" class="cue">No tests yet.</div>
-  </section>
+  </div>
+
+  <!-- PHOTOS: stored only on this phone (IndexedDB) -->
+  <div class="pane" data-pane="photos" role="tabpanel" hidden>
+  <section class="win" id="ph-cmp"></section>
+  <section class="win" id="photos"></section>
+  </div>
 </section>
 
 <!-- ======================= TIMER ======================= -->
@@ -412,7 +446,7 @@
     </ul>
     <button type="button" id="reset" class="danger" style="margin-top:12px">Erase all progress</button>
   </section>
-  <p class="cue center">ARETE · Level up in real life · v8.1 · works offline once installed</p>
+  <p class="cue center">ARETE · Level up in real life · v8.2 · works offline once installed</p>
 </section>
 </div>
 

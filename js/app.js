@@ -365,7 +365,7 @@ function renderStatus(){
   for(let wk=11;wk>=0;wk--){hm+='<div class="hcol">';for(let d=0;d<7;d++){const dt=addDays(endMon,-wk*7+d),ds=ymd(dt);const fut=dt>new Date();const sc=fut||!hasData(ds)?-1:dayScore(ds);
     const lvl=sc<0?0:sc>=0.9?3:sc>=0.6?2:sc>0?1:0;hm+=`<i class="h${lvl}${fut?' fut':''}" title="${ds}${sc>=0?' · '+Math.round(sc*100)+'%':''}"></i>`}hm+='</div>'}
   $('heat').innerHTML=hm;
-  renderTestForm();renderLog();renderLift();
+  renderTestForm();renderLog();renderLift();showPane(statPane);
   $('test-history').innerHTML=tests.length?`<table class="logt"><thead><tr><th>Date</th><th>For</th><th>Result</th></tr></thead><tbody>${tests.slice().reverse().map(t=>`<tr><td>${t.date}</td><td>${t.rank}-Rank</td><td>${t.passed?'<span class="pill ok">Passed</span>':`${t.met}/${t.total} met`}</td></tr>`).join('')}</tbody></table>`:'No tests yet. Your first test is week 12, Saturday.';
 }
 function renderTestForm(){
@@ -1267,7 +1267,7 @@ $('day').addEventListener('click',e=>{
 });
 
 /* weekly totals: cardio minutes, core sets, mobility minutes */
-function weekKeyOf(ds){const d=new Date(ds+'T00:00');const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d.toISOString().slice(0,10)}
+function weekKeyOf(ds){return ymd(mondayOf(parseYmd(ds)))}
 function coreSetsOn(ds){let n=0;for(const k of CORE_KEYS){const h=hist(k).find(x=>x.date===ds);if(h)n+=h.sets.length}return n}
 const CORE_KEYS=new Set(['plank','kneeplank','sideplank','deadbug','legraise','bicycle','hangknee','hangleg','abwheel','cablecrunch','crunch','birddog','hollow','russian','mtclimb','pallof','vups','situp']);
 function isCoreKey(k){return CORE_KEYS.has(k)}
@@ -1616,6 +1616,210 @@ function bindGate(o){
 }
 
 /* =================================================================
+   PROGRESS (v8.2) — Stats sections: Status · Records · Calendar · Charts · Photos
+   Reads existing logs only. Photos live in IndexedDB 'arete-photos' on this
+   phone and are never uploaded (and not in the backup file).
+   ================================================================= */
+let statPane=S.get('statPane','status');
+function showPane(p){
+  if(!document.querySelector(`#st-tabs [data-pane="${p}"]`))p='status';statPane=p;S.set('statPane',p);
+  document.querySelectorAll('#st-tabs [data-pane]').forEach(b=>{const on=b.dataset.pane===p;b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1});
+  document.querySelectorAll('#v-status .pane').forEach(x=>{x.hidden=x.dataset.pane!==p});
+  if(p==='records')renderRecords();if(p==='calendar')renderCal();if(p==='charts')renderCharts();if(p==='photos')renderPhotos();
+}
+$('st-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-pane]');if(b){showPane(b.dataset.pane);window.scrollTo(0,0)}});
+$('st-tabs').addEventListener('keydown',e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;const t=[...document.querySelectorAll('#st-tabs [data-pane]')],i=t.findIndex(b=>b.dataset.pane===statPane),n=t[(i+(e.key==='ArrowRight'?1:t.length-1))%t.length];showPane(n.dataset.pane);n.focus()});
+
+/* ---------- muscle groups ---------- */
+const MGROUPS=[['Chest','#FF5470'],['Back','#8B5CFF'],['Shoulders','#4FD8FF'],['Arms','#FFC857'],['Legs','#2EF2A0'],['Core','#6E97FF']];
+const MRULES=[['Core',/abs|core|oblique/],['Chest',/chest|pec/],['Shoulders',/delt|shoulder/],['Arms',/bicep|tricep|forearm|brachi/],['Back',/lat|back|rhomboid|trap/],['Legs',/quad|glute|hamstring|calf|calves|leg|hip|adductor/]];
+function muscleOf(k){if(isCoreKey(k))return 'Core';const m=((EX[k]||{}).m||'').toLowerCase(),first=m.split('·')[0];
+  for(const [g,rx] of MRULES)if(rx.test(first))return g;for(const [g,rx] of MRULES)if(rx.test(m))return g;return 'Other'}
+const MCOL=Object.fromEntries(MGROUPS);
+function histKeys(){const out=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(P+'hist:'))out.push(k.slice((P+'hist:').length))}}catch(e){}return out}
+
+/* ---------- personal records ---------- */
+function prRecords(){
+  const out=[];
+  histKeys().forEach(k=>{const e=EX[k],h=hist(k).filter(x=>x.sets&&x.sets.length);if(!e||!h.length)return;
+    const secs=h.some(x=>x.u==='s'),weighted=!secs&&h.some(x=>x.sets.some(s=>s.kg>0));
+    const val=x=>weighted?(x.e1||0):Math.max(...x.sets.map(s=>s.reps||0));
+    let run=-1,best=h[0];const events=[];
+    h.forEach(x=>{const v=val(x);if(v>run){if(run>0)events.push({date:x.date,v,prev:run});run=v;best=x}});
+    const top=weighted?best.sets.reduce((a,s)=>(s.kg||0)*(1+s.reps/30)>(a.kg||0)*(1+a.reps/30)?s:a):best.sets.reduce((a,s)=>s.reps>a.reps?s:a);
+    out.push({k,e,g:muscleOf(k),weighted,secs,best,top,v:run,events,heaviest:weighted?Math.max(...h.flatMap(x=>x.sets.map(s=>s.kg||0))):0,sessions:h.length,last:h[h.length-1].date,series:h.map(val)});
+  });
+  return out;
+}
+function recSpark(v){const W=300,H=34,lo=Math.min(...v),hi=Math.max(...v),X=i=>6+i*(W-12)/(v.length-1),Y=x=>H-6-(hi>lo?(x-lo)/(hi-lo):.5)*(H-12);const pts=v.map((x,i)=>X(i).toFixed(1)+','+Y(x).toFixed(1)).join(' ');return `<svg class="spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="var(--mc)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${X(v.length-1)}" cy="${Y(v[v.length-1])}" r="4" fill="var(--mc)"/></svg>`}
+let recFilter='All';
+function renderRecords(){
+  const el=$('records');const all=prRecords(),wkAgo=ymd(addDays(new Date(),-7));
+  const recent=r=>r.events.length&&r.events[r.events.length-1].date>=wkAgo;
+  const prs=all.reduce((a,r)=>a+r.events.length,0),fresh=all.filter(recent).length;
+  if(!all.length){el.innerHTML=`<div class="wh"><h3 class="sub">Personal records</h3></div><div class="empty-st"><div class="gc-badge big">PR</div><p><b>No records yet.</b></p><p class="cue">Log sets in a Gate or in Body. Your best set, estimated 1-rep max and every new record show up here.</p></div>`;return}
+  const groups=['All',...MGROUPS.map(g=>g[0]).filter(g=>all.some(r=>r.g===g))];if(!groups.includes(recFilter))recFilter='All';
+  const list=all.filter(r=>recFilter==='All'||r.g===recFilter).sort((a,b)=>(recent(b)-recent(a))||(b.last>a.last?1:b.last<a.last?-1:0));
+  const fmtD=d=>{const x=parseYmd(d);return `${x.getDate()} ${x.toLocaleString('en-IN',{month:'short'})}`};
+  el.innerHTML=`<div class="wh"><h3 class="sub">Personal records</h3></div>
+   <div class="rec-sum"><div><b>${all.length}</b><span>exercises</span></div><div><b>${prs}</b><span>records broken</span></div><div class="${fresh?'hot':''}"><b>${fresh}</b><span>new this week</span></div></div>
+   <div class="seg rec-f" role="group" aria-label="Muscle group">${groups.map(g=>`<button type="button" data-rf="${g}" aria-pressed="${g===recFilter}">${g}</button>`).join('')}</div>
+   <div class="recs">${list.map(r=>{const isNew=recent(r),u=r.secs?'s':'reps';
+     const main=r.weighted?`${r.top.kg} kg × ${r.top.reps}`:`${r.v} ${u}`;
+     const sub=r.weighted?`est. 1-rep max <b>${r.v} kg</b> · heaviest ${r.heaviest} kg`:`best single set`;
+     return `<article class="rec${isNew?' new':''}" style="--mc:${MCOL[r.g]||'var(--dim)'}">
+       <div class="rec-h"><span class="rec-g">${r.g}</span>${isNew?'<span class="gc-badge">PR</span><span class="rec-new">New</span>':r.events.length?`<span class="rec-n">${r.events.length} PR${r.events.length>1?'s':''}</span>`:''}</div>
+       <b class="rec-name">${esc(r.e.n)}</b>
+       <div class="rec-v"><b>${main}</b><span>${fmtD(r.best.date)}</span></div>
+       <p class="cue">${sub} · ${r.sessions} session${r.sessions>1?'s':''}</p>
+       ${r.series.length>1?`<div class="rec-sp">${recSpark(r.series.slice(-12))}</div>`:''}</article>`}).join('')}</div>`;
+}
+$('records').addEventListener('click',e=>{const b=e.target.closest('[data-rf]');if(b){recFilter=b.dataset.rf;renderRecords()}});
+
+/* ---------- calendar ---------- */
+let calMonth=null,calSel=null;
+function dayInfo(ds){
+  const has=hasData(ds),rec=getDay(ds),fl=foodLog(ds);let sets=0;
+  histKeys().forEach(k=>{const x=hist(k).find(h=>h.date===ds);if(x)sets+=x.sets.length});
+  const q=has?questsFor(ds):[],qd=q.filter(x=>x.done).length,t=fl.length?totals(ds):null;
+  const cardio=actLog().filter(x=>x.date===ds&&x.type!=='mob').reduce((a,x)=>a+(x.min||0),0);
+  const body=S.get('log',[]).find(r=>r.date===ds);
+  return {has,rec,w:!!rec.workout,sets,q:q.length,qd,qok:q.length&&qd/q.length>=0.8,food:fl.length,t,water:rec.water||0,cardio,body};
+}
+function renderCal(){
+  const now=new Date(),today=todayStr();if(!calMonth)calMonth=new Date(now.getFullYear(),now.getMonth(),1);if(!calSel)calSel=today;
+  const y=calMonth.getFullYear(),m=calMonth.getMonth(),lead=(new Date(y,m,1).getDay()+6)%7,dim=new Date(y,m+1,0).getDate();
+  let cells='',nw=0,nq=0,nf=0;
+  for(let i=0;i<lead;i++)cells+='<span class="cd pad" aria-hidden="true"></span>';
+  for(let d=1;d<=dim;d++){const ds=ymd(new Date(y,m,d)),fut=ds>today,inf=fut?null:dayInfo(ds);
+    if(inf){if(inf.w)nw++;if(inf.qok)nq++;if(inf.food)nf++}
+    const lab=`${d} ${calMonth.toLocaleString('en-IN',{month:'long'})}${inf?`: ${inf.w?'workout done':'no workout'}, ${inf.q?`${inf.qd} of ${inf.q} quests`:'no quests logged'}, ${inf.food?'food logged':'no food logged'}`:''}`;
+    cells+=`<button type="button" class="cd${inf&&inf.w?' w':''}${inf&&inf.qok?' q':''}${ds===today?' today':''}${ds===calSel?' sel':''}${fut?' fut':''}" data-cd="${ds}" ${fut?'disabled':''} aria-label="${lab}" aria-pressed="${ds===calSel}"><b>${d}</b>${inf?`<span class="cd-m"><i class="${inf.w?'mw':''}"></i><i class="${inf.qok?'mq':''}"></i><i class="${inf.food?'mf':''}"></i></span>`:''}</button>`}
+  const isCur=y===now.getFullYear()&&m===now.getMonth();
+  $('cal').innerHTML=`<div class="cal-h"><button type="button" class="ghost cal-nav" data-cm="-1" aria-label="Previous month">‹</button><b>${calMonth.toLocaleString('en-IN',{month:'long',year:'numeric'})}</b><button type="button" class="ghost cal-nav" data-cm="1" aria-label="Next month" ${isCur?'disabled':''}>›</button></div>
+   <div class="cal-sum"><span><i class="mw"></i><b>${nw}</b> workouts</span><span><i class="mq"></i><b>${nq}</b> quest days</span><span><i class="mf"></i><b>${nf}</b> food logged</span></div>
+   <div class="cal-g" role="grid"><span class="cw">M</span><span class="cw">T</span><span class="cw">W</span><span class="cw">T</span><span class="cw">F</span><span class="cw">S</span><span class="cw">S</span>${cells}</div>
+   <p class="cue">Cyan = Gate cleared · gold ring = 80%+ of quests · green dot = food logged. Tap a day.</p>`;
+  renderCalDay(calSel);
+}
+function renderCalDay(ds){
+  const d=parseYmd(ds),p=posOf(d),sess=p.days>=0?Plan.program(p.w,p.d):null,inf=dayInfo(ds),T=targets();
+  const row=(k,v,ok)=>`<div class="cdr${ok===true?' ok':ok===false?' no':''}"><span class="k">${k}</span><b>${v}</b></div>`;
+  $('cal-day').innerHTML=`<div class="wh"><h3 class="sub">${DFULL[(d.getDay()+6)%7]}, ${d.getDate()} ${d.toLocaleString('en-IN',{month:'short'})}</h3>${p.days>=0?`<span class="cue">Week ${p.w}</span>`:''}</div>
+   <div class="cdrs">
+    ${row('Gate',sess?(sess.rest?'Rest day':`${esc(sess.t)} · ${inf.w?'cleared':'not cleared'}`):'Before plan start',sess&&!sess.rest?inf.w:undefined)}
+    ${row('Sets logged',inf.sets||'–')}
+    ${row('Quests',inf.q?`${inf.qd} / ${inf.q}`:'–',inf.q?!!inf.qok:undefined)}
+    ${row('Food',inf.t?`${Math.round(inf.t.kcal).toLocaleString('en-IN')} kcal · ${Math.round(inf.t.p)} g protein`:'not logged',inf.t?inf.t.kcal<=T.kcal*1.05&&inf.t.p>=T.p*0.9:undefined)}
+    ${row('Water',`${(inf.water/1000).toFixed(1)} L`,inf.has?inf.water>=waterL()*1000:undefined)}
+    ${inf.cardio?row('Cardio',`${inf.cardio} min`):''}
+    ${inf.body?row('Body',[inf.body.wt?inf.body.wt+' kg':'',inf.body.waist?inf.body.waist+' cm waist':''].filter(Boolean).join(' · ')):''}
+   </div>
+   <div class="t-actions left"><button type="button" class="ghost" data-cfood="${ds}">Open this day in Food</button></div>`;
+}
+$('cal').addEventListener('click',e=>{const c=e.target.closest('[data-cd]');if(c){calSel=c.dataset.cd;buzz(5);renderCal();return}
+  const n=e.target.closest('[data-cm]');if(n){calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+ +n.dataset.cm,1);renderCal()}});
+$('cal-day').addEventListener('click',e=>{const b=e.target.closest('[data-cfood]');if(!b)return;showView('food');foodDate=b.dataset.cfood;renderFood()});
+
+/* ---------- charts: weekly volume per muscle, calories + protein ---------- */
+function renderCharts(){renderVolume();renderFuel();if(!window.FOODS_INDB)loadINDB()}
+function weekMondays(n){const m0=mondayOf(new Date());return [...Array(n)].map((_,i)=>ymd(addDays(m0,-7*(n-1-i))))}
+function renderVolume(){
+  const wks=weekMondays(8),keys=histKeys();
+  const data=wks.map(w=>{const end=ymd(addDays(parseYmd(w),6)),g={},s={};
+    keys.forEach(k=>{const mg=muscleOf(k);hist(k).forEach(x=>{if(x.date<w||x.date>end)return;g[mg]=(g[mg]||0)+x.sets.reduce((a,y)=>a+(y.kg||0)*(y.reps||0),0);s[mg]=(s[mg]||0)+x.sets.length})});
+    return {w,g,s,tot:Object.values(g).reduce((a,b)=>a+b,0)}});
+  const el=$('chart-vol'),mx=Math.max(1,...data.map(d=>d.tot));
+  if(!data.some(d=>d.tot||Object.keys(d.s).length)){el.innerHTML=`<div class="chart-head"><span class="k">Weekly volume per muscle</span></div><p class="cue empty">Log sets with a weight to see kg lifted per muscle each week.</p>`;return}
+  const W=600,H=230,pl=56,pb=34,pt=14,bw=(W-pl-8)/8;const Y=v=>pt+(1-v/mx)*(H-pt-pb);
+  let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Weekly training volume per muscle group, last 8 weeks">`;
+  [0,mx/2,mx].forEach(v=>{svg+=`<line x1="${pl}" x2="${W-8}" y1="${Y(v)}" y2="${Y(v)}" class="grid-l"/><text x="${pl-8}" y="${Y(v)+6}" class="ax" text-anchor="end">${v>=1000?(v/1000).toFixed(v>=10000?0:1)+'k':Math.round(v)}</text>`});
+  data.forEach((d,i)=>{const x=pl+i*bw+bw*.18,w=bw*.64;let y=H-pb;
+    MGROUPS.forEach(([g,c])=>{const v=d.g[g]||0;if(!v)return;const h=v/mx*(H-pt-pb);y-=h;svg+=`<rect x="${x}" y="${y}" width="${w}" height="${Math.max(0,h-1.5)}" fill="${c}" fill-opacity="${i===7?1:.75}"/>`});
+    const dt=parseYmd(d.w);svg+=`<text x="${x+w/2}" y="${H-10}" class="ax" text-anchor="middle">${i===7?'This':dt.getDate()+'/'+(dt.getMonth()+1)}</text>`});
+  svg+='</svg>';
+  const cur=data[7],prev=data[6];
+  el.innerHTML=`<div class="chart-head"><span class="k">Weekly volume per muscle · kg lifted</span><span class="cue">${Math.round(cur.tot).toLocaleString('en-IN')} kg so far this week${prev.tot?` · ${Math.round(prev.tot).toLocaleString('en-IN')} last week`:''}</span></div>${svg}
+   <div class="legend">${MGROUPS.map(([g,c])=>`<span style="--c:${c}">${g}</span>`).join('')}</div>
+   <p class="k" style="margin-top:14px">Sets this week</p>
+   <div class="msets">${MGROUPS.map(([g,c])=>{const n=cur.s[g]||0;return `<div class="ms"><span>${g}</span><div class="mtrack"><i style="width:${Math.min(100,n/20*100)}%;background:${c}"></i></div><b>${n}</b></div>`}).join('')}</div>
+   <p class="cue">About 10–20 hard sets per muscle a week builds muscle. Bodyweight sets count as sets, not kg.</p>`;
+}
+function renderFuel(){
+  const T=targets(),days=[...Array(14)].map((_,i)=>ymd(addDays(new Date(),i-13))),rows=days.map(ds=>({ds,n:foodLog(ds).length,t:totals(ds)}));
+  const el=$('chart-fuel'),logged=rows.filter(r=>r.n);
+  const chart=(key,tgt,color,label,unit,overBad)=>{const W=600,H=150,pl=56,pb=26,pt=10,bw=(W-pl-8)/14,mx=Math.max(tgt*1.35,...rows.map(r=>r.t[key]));const Y=v=>pt+(1-v/mx)*(H-pt-pb);
+    let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}, last 14 days, target ${tgt} ${unit}"><line x1="${pl}" x2="${W-8}" y1="${Y(tgt)}" y2="${Y(tgt)}" stroke="var(--gold)" stroke-dasharray="6 5" stroke-width="2"/><text x="${pl-8}" y="${Y(tgt)+6}" class="ax" text-anchor="end">${tgt}</text>`;
+    rows.forEach((r,i)=>{const x=pl+i*bw+bw*.2,w=bw*.6,v=r.t[key];
+      if(r.n){const bad=overBad?v>tgt*1.05:v<tgt*0.9;s+=`<rect x="${x}" y="${Y(v)}" width="${w}" height="${H-pb-Y(v)}" fill="${bad&&overBad?'var(--cardio)':color}" fill-opacity="${bad&&!overBad?.38:1}"/>`}
+      else s+=`<rect x="${x}" y="${H-pb-2}" width="${w}" height="2" fill="var(--line)"/>`;
+      if(i%2===1||i===13){const d=parseYmd(r.ds);s+=`<text x="${x+w/2}" y="${H-6}" class="ax" text-anchor="middle">${i===13?'Today':d.getDate()}</text>`}});
+    return `<p class="k fuel-k">${label} <span class="cue">target ${tgt} ${unit}${overBad?' · orange = over':' · faded = under 90%'}</span></p>${s}</svg>`};
+  const avg=k=>logged.length?Math.round(logged.reduce((a,r)=>a+r.t[k],0)/logged.length):null;
+  const onK=logged.filter(r=>r.t.kcal<=T.kcal*1.05).length,onP=logged.filter(r=>r.t.p>=T.p*0.9).length;
+  el.innerHTML=`<div class="chart-head"><span class="k">Calories &amp; protein · last 14 days</span><span class="cue">${logged.length} of 14 days logged</span></div>
+   ${logged.length?chart('kcal',T.kcal,'var(--cyan)','Calories','kcal',true)+chart('p',T.p,'var(--ok)','Protein','g',false)
+     +`<div class="statgrid three"><div class="stat"><span class="k">Avg kcal</span><div class="v">${avg('kcal').toLocaleString('en-IN')}</div><span class="cue">${onK} days on target</span></div><div class="stat"><span class="k">Avg protein</span><div class="v">${avg('p')} g</div><span class="cue">${onP} days ≥ 90%</span></div><div class="stat"><span class="k">Target</span><div class="v">${T.kcal.toLocaleString('en-IN')}</div><span class="cue">${T.p} g protein</span></div></div>`
+     :'<p class="cue empty">Log meals in Food to see calories and protein against your targets.</p>'}`;
+}
+
+/* ---------- progress photos (IndexedDB, this phone only) ---------- */
+const PDB={p:null,
+  open(){if(!this.p)this.p=new Promise((res,rej)=>{if(!window.indexedDB)return rej(new Error('no idb'));const r=indexedDB.open('arete-photos',1);
+    r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('photos'))d.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});return this.p},
+  async run(mode,fn){const d=await this.open();return new Promise((res,rej)=>{const t=d.transaction('photos',mode),rq=fn(t.objectStore('photos'));t.oncomplete=()=>res(rq&&rq.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})},
+  all(){return this.run('readonly',s=>s.getAll())},put(o){return this.run('readwrite',s=>s.put(o))},del(id){return this.run('readwrite',s=>s.delete(id))}};
+let phURLs=[],phPose=S.get('phPose','front'),phCmp={a:null,b:null,pos:50},phDel=null;
+const POSES=[['front','Front'],['side','Side'],['back','Back']];
+async function compressImg(file){
+  const url=URL.createObjectURL(file);
+  try{const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('bad image'));i.src=url});
+    const s=Math.min(1,1280/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(img.naturalWidth*s);c.height=Math.round(img.naturalHeight*s);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.82));return {blob,w:c.width,h:c.height}}
+  finally{URL.revokeObjectURL(url)}
+}
+function bodyNear(ds){const l=latestLog();let best=null;l.forEach(r=>{if(!r.wt&&!r.waist)return;const d=Math.abs(parseYmd(r.date)-parseYmd(ds));if(d<=4*864e5&&(!best||d<best.d))best={...r,d}});return best}
+async function renderPhotos(){
+  const el=$('photos'),cmp=$('ph-cmp');
+  let list=[];try{list=(await PDB.all()).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.at-b.at)}catch(e){el.innerHTML='<h3 class="sub">Progress photos</h3><p class="cue">Photos need browser storage, which is blocked here. Check that the site isn\'t in private mode.</p>';cmp.hidden=true;return}
+  phURLs.forEach(u=>URL.revokeObjectURL(u));phURLs=[];const url=o=>{const u=URL.createObjectURL(o.blob);phURLs.push(u);return u};
+  const fmtD=d=>{const x=parseYmd(d);return `${x.getDate()} ${x.toLocaleString('en-IN',{month:'short'})} ${String(x.getFullYear()).slice(2)}`};
+  el.innerHTML=`<div class="wh"><h3 class="sub">Progress photos</h3><span class="cue">${list.length} saved</span></div>
+   <p class="ph-priv"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg><span>Stored only on this phone. Never uploaded, not in the backup file. Uninstalling the app deletes them, so use <b>Save copy</b> for any you want to keep.</span></p>
+   <p class="k">Pose</p><div class="seg" role="group" aria-label="Pose">${POSES.map(([k,l])=>`<button type="button" data-pp="${k}" aria-pressed="${k===phPose}">${l}</button>`).join('')}</div>
+   <div class="ph-add"><label class="primary ph-btn">Take photo<input type="file" accept="image/*" capture="environment" data-phin hidden></label><label class="ghost ph-btn">Choose from gallery<input type="file" accept="image/*" data-phin hidden></label></div>
+   <p class="cue" id="ph-msg" role="status">Same spot, same light, morning before food. Every 2 weeks is enough.</p>
+   ${list.length?`<div class="ph-grid">${list.slice().reverse().map(o=>`<figure class="ph"><img src="${url(o)}" alt="${POSES.find(p=>p[0]===o.pose)?.[1]||''} photo, ${fmtD(o.date)}" loading="lazy">
+     <figcaption><b>${fmtD(o.date)}</b><span>${POSES.find(p=>p[0]===o.pose)?.[1]||''}</span></figcaption>
+     <div class="ph-act"><button type="button" class="ph-ic" data-phsave="${o.id}" aria-label="Save copy of ${fmtD(o.date)} photo"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button><button type="button" class="ph-ic${phDel===o.id?' warn':''}" data-phdel="${o.id}" aria-label="${phDel===o.id?'Tap again to delete':'Delete'} ${fmtD(o.date)} photo">${phDel===o.id?'Delete?':'<svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/></svg>'}</button></div></figure>`).join('')}</div>`
+    :'<div class="empty-st"><p><b>No photos yet.</b></p><p class="cue">Take your first one today. In a few weeks the slider shows the change the mirror hides.</p></div>'}`;
+  // compare
+  if(list.length<2){cmp.hidden=true;return}cmp.hidden=false;
+  if(!list.some(o=>o.id===phCmp.a))phCmp.a=list[0].id;if(!list.some(o=>o.id===phCmp.b))phCmp.b=list[list.length-1].id;
+  const A=list.find(o=>o.id===phCmp.a),B=list.find(o=>o.id===phCmp.b),opt=sel=>list.map(o=>`<option value="${o.id}" ${o.id===sel?'selected':''}>${fmtD(o.date)} · ${POSES.find(p=>p[0]===o.pose)?.[1]||''}</option>`).join('');
+  const ba=bodyNear(A.date),bb=bodyNear(B.date),dd=Math.round((parseYmd(B.date)-parseYmd(A.date))/864e5);
+  const delta=(k,u)=>ba&&bb&&ba[k]&&bb[k]?`<span class="${bb[k]<=ba[k]?'okc':'warnc'}">${bb[k]-ba[k]>0?'+':''}${(bb[k]-ba[k]).toFixed(1)} ${u}</span>`:'';
+  cmp.innerHTML=`<div class="wh"><h3 class="sub">Before / after</h3><span class="cue">${dd} days apart</span></div>
+   <div class="ph-sel"><label>Before<select data-phc="a">${opt(A.id)}</select></label><label>After<select data-phc="b">${opt(B.id)}</select></label></div>
+   <div class="cmp" id="cmp" style="--pos:${phCmp.pos}%"><img src="${url(A)}" alt="Before, ${fmtD(A.date)}"><img class="cmp-b" src="${url(B)}" alt="After, ${fmtD(B.date)}">
+    <span class="cmp-l">Before · ${fmtD(A.date)}</span><span class="cmp-r">After · ${fmtD(B.date)}</span><i class="cmp-h" aria-hidden="true"></i>
+    <input type="range" min="0" max="100" value="${phCmp.pos}" class="cmp-in" aria-label="Slide to compare before and after"></div>
+   ${delta('wt','kg')||delta('waist','cm')?`<p class="cue cmp-d">Change: ${[delta('wt','kg'),delta('waist','cm')+(delta('waist','cm')?' waist':'')].filter(Boolean).join(' · ')}</p>`:''}`;
+}
+$('photos').addEventListener('change',async e=>{const inp=e.target.closest('[data-phin]');if(!inp||!inp.files||!inp.files[0])return;const f=inp.files[0];inp.value='';
+  const msg=$('ph-msg');msg.textContent='Saving…';
+  try{const {blob,w,h}=await compressImg(f);await PDB.put({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),date:todayStr(),pose:phPose,blob,w,h,at:Date.now()});
+    try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(x){}
+    buzz(20);toast('Photo saved on this phone');renderPhotos()}
+  catch(err){msg.textContent='Could not save that photo. Try another one.'}});
+$('photos').addEventListener('click',async e=>{
+  const pp=e.target.closest('[data-pp]');if(pp){phPose=pp.dataset.pp;S.set('phPose',phPose);renderPhotos();return}
+  const sv=e.target.closest('[data-phsave]');if(sv){const o=(await PDB.all()).find(x=>x.id===sv.dataset.phsave);if(o)download(o.blob,`arete-photo-${o.date}-${o.pose}.jpg`);return}
+  const dl=e.target.closest('[data-phdel]');if(dl){if(phDel!==dl.dataset.phdel){phDel=dl.dataset.phdel;renderPhotos();return}await PDB.del(phDel);phDel=null;toast('Photo deleted');renderPhotos()}});
+$('ph-cmp').addEventListener('change',e=>{const s=e.target.closest('[data-phc]');if(s){phCmp[s.dataset.phc]=s.value;renderPhotos()}});
+$('ph-cmp').addEventListener('input',e=>{if(!e.target.classList.contains('cmp-in'))return;phCmp.pos=+e.target.value;$('cmp').style.setProperty('--pos',phCmp.pos+'%')});
+
+/* =================================================================
    GOAL + LAZY FOOD DATABASE
    ================================================================= */
 const GOALS={cut:'Fat loss',strength:'Strength',both:'Recomp'};
@@ -1760,7 +1964,7 @@ if('serviceWorker' in navigator&&location.protocol!=='file:')window.addEventList
 
 const p0=posOf(new Date());selW=p0.w;selD=p0.d;
 const qv=new URLSearchParams(location.search).get('view');
-fillSettings();drawTimer();showView(VIEWS.includes(qv)?qv:S.get('view','today'));
+fillSettings();drawTimer();showView(VIEWS.includes(qv)?qv:S.get('view','today'));header();
 if(needsAwakening())showAwakening();
 setInterval(()=>{checkReminders();if(!document.hidden&&S.get('view','today')==='today')renderToday()},60000);
 checkReminders();

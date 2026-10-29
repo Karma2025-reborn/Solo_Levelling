@@ -1,4 +1,4 @@
-# ARETE v8.1 · Level up in real life
+# ARETE v8.2 · Level up in real life
 
 *Arete* is Greek for excellence. ARETE (formerly Hunter System) is an E → S rank transformation app that installs on your phone and works offline. Your data never leaves the phone.
 
@@ -11,6 +11,14 @@
 | **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
 | **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
 | **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
+
+## v8.2: Progress
+Stats now has five sections along the top: **Status · Records · Calendar · Charts · Photos** (it remembers the last one you used).
+- **Records**: your best set for every exercise you've logged (e.g. *12.5 kg × 10*), estimated 1-rep max, heaviest weight, number of sessions and a trend line. Records broken in the last 7 days get a gold **PR · NEW** badge. Filter by Chest, Back, Shoulders, Arms, Legs, Core.
+- **Calendar**: a month view. Cyan = Gate cleared, gold ring = 80%+ of daily quests, green dot = food logged. Tap a day for its details (Gate, sets, quests, calories and protein, water, cardio, weight and waist) or open it in Food.
+- **Charts**: body log + weight and waist trends (as before), **weekly volume per muscle** (kg lifted, last 8 weeks) with **sets this week per muscle**, **calories and protein vs target** for the last 14 days, cardio / core / mobility, and the strength chart.
+- **Photos**: take or pick a progress photo (front / side / back). Photos are **stored only on this phone** (IndexedDB), never uploaded and **not in the backup file**. Uninstalling deletes them, so use **Save copy** for any you want to keep. **Before / after** compares two dates with a slider and shows your weight and waist change between them. Start fresh does not delete photos; delete them one by one.
+- Fixes: the cardio week now runs Monday–Sunday (it was a day off in India), and the top bar shows your real week when the app opens on a tab other than Today.
 
 ## v8.1: Gates (focus workout mode)
 - **Enter Gate** (Today, or the top of Body) opens a full-screen workout: one exercise at a time, with a progress bar, the animated figure and **How to do it**.
