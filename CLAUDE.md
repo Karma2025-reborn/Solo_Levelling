@@ -28,6 +28,12 @@ no backend, no tracking. Hosted on GitHub Pages from repo `Karma2025-reborn/Solo
   `hunter:phPose`. Photos are in IndexedDB database `arete-photos`, store `photos`
   `{id,date,pose,blob(JPEG ≤1280 px),w,h,at}` — never sent anywhere, not part of the localStorage backup,
   not removed by Start fresh. Muscle groups for charts/records come from `muscleOf()` (EX[k].m keywords).
+- Quests & habits (v8.3, "QUESTS & HABITS" section of `js/app.js`). New keys: `hunter:habits`
+  `[{id,t,days|null,from,to?}]` (habits are daily quests with id `h:<id>` stored in `day.q`; only counted on days
+  from ≤ day < to), `hunter:forgiven` (dates restored by a penalty quest), `hunter:badges` `{id:date}`,
+  `hunter:title`, and `day.pen` `{walk,squat}`. Streak rules: `streakCalc`/`runBack`/`isFrozen` — a day counts
+  at ≥ 80 % quests; rest days, asthma-red days and forgiven days are frozen (skip, don't break). XP adds
+  `weeklyQuests(monday)` for every week since `prof.start`. `dayScore` is cached per storage version (`SV`).
 - "Hunter" as the *player's* title (e.g. "D-Rank Hunter", "Hunter stats") is game flavour, not the app name.
 - All art is original SVG drawn in code. No anime characters, likenesses, quotes or catchphrases.
   Mentors are our own: Kael, Garo, Sora, Ryn (`js/hud.js`).

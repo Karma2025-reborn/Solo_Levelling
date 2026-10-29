@@ -56,9 +56,14 @@ function questsFor(ds){
   q.push({id:'clean',t:'No sugar, no fried food',s:'No chai sugar, samosa, biscuits, cold drinks',done:!!rec.q.clean});
   q.push({id:'pf',t:'Vitality routine (5 min)',s:'Pelvic floor, seated on the commute',done:!!rec.q.pf});
   q.push({id:'sleep',t:'Sleep by 10:30 pm',s:'Tick tomorrow morning if you made it',done:!!rec.q.sleep});
+  habitsOn(ds).forEach(h=>q.push({id:'h:'+h.id,t:h.t,s:'Your habit',habit:true,done:!!rec.q['h:'+h.id]}));
   return q;
 }
-function dayScore(ds){const q=questsFor(ds);return q.filter(x=>x.done).length/q.length}
+/* custom habits: {id,t,days:[0-6]|null,from,to}. Archived habits keep their history (from <= day < to). */
+function habits(){return S.get('habits',[])}
+function habitsOn(ds){const wd=(parseYmd(ds).getDay()+6)%7;return habits().filter(h=>h.from<=ds&&(!h.to||h.to>ds)&&(!h.days||!h.days.length||h.days.includes(wd)))}
+let _dsc={v:-1,m:{}};
+function dayScore(ds){if(_dsc.v!==SV)_dsc={v:SV,m:{}};if(ds in _dsc.m)return _dsc.m[ds];const q=questsFor(ds);return _dsc.m[ds]=q.filter(x=>x.done).length/q.length}
 function hasData(ds){return localStorage.getItem(P+dayKey(ds))!==null}
 
 /* ---------- XP / level / streak ---------- */
@@ -66,9 +71,13 @@ function allDays(){const out=[];try{for(let i=0;i<localStorage.length;i++){const
 function xpTotal(){return memo('xp',xpCalc)}
 function xpCalc(){let xp=0;for(const ds of allDays()){const q=questsFor(ds);xp+=q.filter(x=>x.done).length*15;if(getDay(ds).workout)xp+=50;try{xp+=missionQuests(ds).filter(x=>x.done).length*10}catch(e){}}
   try{xp+=Object.keys(S.get('mdone',{})).length*100}catch(e){}
-  xp+=S.get('tests',[]).filter(t=>t.passed).length*500;return xp}
+  xp+=S.get('tests',[]).filter(t=>t.passed).length*500;
+  try{const m0=mondayOf(parseYmd(prof.start)),now=mondayOf(new Date());for(let m=m0;m<=now;m=addDays(m,7))xp+=weeklyQuests(ymd(m)).filter(x=>x.done).reduce((a,x)=>a+x.xp,0)}catch(e){}
+  return xp}
 function streak(){return memo('streak',streakCalc)}
-function streakCalc(){let n=0,d=new Date();if(dayScore(ymd(d))<0.8)d=addDays(d,-1);while(dayScore(ymd(d))>=0.8&&n<1000){n++;d=addDays(d,-1)}return n}
+function streakCalc(){let d=new Date();if(dayScore(ymd(d))<0.8)d=addDays(d,-1);return runBack(d)}
+function runBack(d){let n=0;for(let g=0;g<2000&&posOf(d).days>=0;g++){const ds=ymd(d);if(dayScore(ds)>=0.8)n++;else if(!isFrozen(ds))break;d=addDays(d,-1)}return n}
+function isFrozen(ds){const p=posOf(parseYmd(ds));if(p.days<0)return false;if(Plan.program(p.w,p.d).rest)return true;if(prof.asthma&&getDay(ds).breath==='r')return true;return S.get('forgiven',[]).includes(ds)}
 
 /* ---------- workout log ---------- */
 const wlKey=(ds,k)=>`wl:${ds}:${k}`;
@@ -104,6 +113,7 @@ function header(){
   const xp=xpTotal(),lv=Math.floor(xp/1000)+1;
   $('lv').textContent=lv;
   const seen=S.get('lvseen',0);if(!seen)S.set('lvseen',lv);else if(lv>seen){S.set('lvseen',lv);if(window.HUD)HUD.levelUp('[ SYSTEM ]','LEVEL UP',`You reached level ${lv}. Keep going, Hunter.`)}
+  try{checkBadges()}catch(e){}
 }
 
 /* =================================================================
@@ -116,13 +126,15 @@ function renderToday(){
   const nxt=tl.find(t=>{const [h,m]=t.time.split(':').map(Number);return h*60+m>=hm&&!rec.tl[t.id]})||null;
   const ql=questsFor(ds),qd=ql.filter(q=>q.done).length,ft=totals(ds),T=targets();
   renderStatusWin(p,st);
+  renderPenalty();
   renderGate(p,sess,rec,st);
   renderBreath();
   renderQuick(rec,ft,T);
   // daily quests
   $('daily').innerHTML=`<div class="wh"><h3 class="sub">Daily quests</h3><span class="qcount${qd===ql.length?' all':''}"><b>${qd}</b>/${ql.length}</span></div>
    <p class="cue">+15 XP each · resets at midnight${dayScore(ds)>=0.8?' · <b class="okc">streak secured today</b>':` · ${Math.max(0,Math.ceil(ql.length*0.8)-qd)} more keeps your streak`}</p>
-   <div class="quests">${ql.map(q=>`<label class="q${q.auto?' auto':''}${q.id===justTick?' just':''}"><input type="checkbox" data-quest="${q.id}" ${q.done?'checked':''} ${q.auto?'disabled':''}><span>${esc(q.t)}<small>${esc(q.s)}${q.auto?' · ticks itself':''}</small></span></label>`).join('')}</div>`;
+   <div class="quests">${ql.map(q=>`<label class="q${q.auto?' auto':''}${q.id===justTick?' just':''}"><input type="checkbox" data-quest="${q.id}" ${q.done?'checked':''} ${q.auto?'disabled':''}><span>${esc(q.t)}<small>${esc(q.s)}${q.auto?' · ticks itself':''}</small></span></label>`).join('')}</div>${habitPanel()}`;
+  renderWeekly();
   // mentor
   if(window.HUD){const h=now.getHours();let order='';
     if(!sess.rest&&!rec.workout&&h<11)order=`Clear today's Gate: ${sess.t}.`;
@@ -156,12 +168,12 @@ function renderStatusWin(p,st){
   el.innerHTML=`<div class="sw-top"><span class="k">${DFULL[p.d]}, ${now.getDate()} ${now.toLocaleString('en-IN',{month:'short'})} · Week ${p.w} · ${esc(st.name.split(' · ')[1]||st.name)}</span></div>
    <div class="sw">
     <div class="rank xl"><span>${r}</span></div>
-    <div class="sw-main"><b class="sw-name">${name}</b><span class="sw-title">${r}-Rank Hunter${prof.goal?` · ${esc(GOALS[prof.goal]||'')}`:''}</span>
+    <div class="sw-main"><b class="sw-name">${name}</b><span class="sw-title">${r}-Rank Hunter${titleName()?` · <b class="goldc">${esc(titleName())}</b>`:prof.goal?` · ${esc(GOALS[prof.goal]||'')}`:''}</span>
      <div class="lvrow"><span class="lvtag">LV <b>${lv}</b></span><span class="cue"><b class="goldc">${into.toLocaleString('en-IN')}</b> / 1,000 XP</span></div></div>
     <div class="flame${sk?'':' off'}" title="Streak"><span class="fl-ic">${FLAME}</span><b>${sk}</b><span>day${sk===1?'':'s'}</span></div>
    </div>
    <div class="xpbar" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="${into}"><i></i></div>
-   <p class="cue sw-foot">${(1000-into).toLocaleString('en-IN')} XP to level ${lv+1} · ${xp.toLocaleString('en-IN')} XP total</p>`;
+   <p class="cue sw-foot">${(1000-into).toLocaleString('en-IN')} XP to level ${lv+1} · ${xp.toLocaleString('en-IN')} XP total${isFrozen(todayStr())&&dayScore(todayStr())<0.8?' · <span class="frz">❄ streak frozen today</span>':''}</p>`;
   const bar=el.querySelector('.xpbar i'),to=into/10;
   const from=xpShown==null?0:(xpShown.lv===lv?xpShown.pct:0);
   bar.style.width=from+'%';
@@ -226,7 +238,7 @@ document.addEventListener('click',e=>{
   const w=e.target.closest('[data-water]');if(w){const ds=todayStr(),r=getDay(ds);r.water=Math.max(0,r.water+ +w.dataset.water);setDay(ds,r);buzz(10);renderToday();return}
   const pq=e.target.closest('[data-pq]');if(pq){const k=pq.dataset.pq,q=+pq.dataset.q,f=food(k);addFoodOn(todayStr(),k,q);pushRecent(k);buzz(10);toast(`Added ${q>1?q+' × ':''}${f.n} · +${Math.round(f.p*q)} g protein`);renderToday()}
 });
-function buzz(ms){try{if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
+function buzz(ms){try{if(navigator.vibrate&&(!navigator.userActivation||navigator.userActivation.hasBeenActive))navigator.vibrate(ms)}catch(e){}}
 
 /* =================================================================
    PLAN
@@ -365,7 +377,7 @@ function renderStatus(){
   for(let wk=11;wk>=0;wk--){hm+='<div class="hcol">';for(let d=0;d<7;d++){const dt=addDays(endMon,-wk*7+d),ds=ymd(dt);const fut=dt>new Date();const sc=fut||!hasData(ds)?-1:dayScore(ds);
     const lvl=sc<0?0:sc>=0.9?3:sc>=0.6?2:sc>0?1:0;hm+=`<i class="h${lvl}${fut?' fut':''}" title="${ds}${sc>=0?' · '+Math.round(sc*100)+'%':''}"></i>`}hm+='</div>'}
   $('heat').innerHTML=hm;
-  renderTestForm();renderLog();renderLift();showPane(statPane);
+  renderTestForm();renderLog();renderLift();renderBadges();showPane(statPane);
   $('test-history').innerHTML=tests.length?`<table class="logt"><thead><tr><th>Date</th><th>For</th><th>Result</th></tr></thead><tbody>${tests.slice().reverse().map(t=>`<tr><td>${t.date}</td><td>${t.rank}-Rank</td><td>${t.passed?'<span class="pill ok">Passed</span>':`${t.met}/${t.total} met`}</td></tr>`).join('')}</tbody></table>`:'No tests yet. Your first test is week 12, Saturday.';
 }
 function renderTestForm(){
@@ -1818,6 +1830,123 @@ $('photos').addEventListener('click',async e=>{
   const dl=e.target.closest('[data-phdel]');if(dl){if(phDel!==dl.dataset.phdel){phDel=dl.dataset.phdel;renderPhotos();return}await PDB.del(phDel);phDel=null;toast('Photo deleted');renderPhotos()}});
 $('ph-cmp').addEventListener('change',e=>{const s=e.target.closest('[data-phc]');if(s){phCmp[s.dataset.phc]=s.value;renderPhotos()}});
 $('ph-cmp').addEventListener('input',e=>{if(!e.target.classList.contains('cmp-in'))return;phCmp.pos=+e.target.value;$('cmp').style.setProperty('--pos',phCmp.pos+'%')});
+
+/* =================================================================
+   QUESTS & HABITS (v8.3) — weekly quests, custom habits, penalty quest,
+   milestone badges / titles. Everything is computed from existing logs.
+   New keys: hunter:habits, hunter:forgiven, hunter:badges, hunter:title.
+   ================================================================= */
+function weeklyQuests(mon){
+  const days=[...Array(7)].map((_,i)=>ymd(addDays(parseYmd(mon),i))),today=todayStr(),past=days.filter(d=>d<=today),T=targets();
+  const gates=past.filter(d=>getDay(d).workout).length,food=past.filter(d=>foodLog(d).length).length;
+  const prot=past.filter(d=>{if(!foodLog(d).length)return false;return totals(d).p>=T.p*0.95}).length;
+  const cardio=weekTotals(mon).cardio,weigh=S.get('log',[]).some(r=>r.date>=mon&&r.date<=days[6]&&r.wt&&r.waist);
+  const mh=Math.round(days.reduce((a,d)=>a+mMin(d),0)/6)/10;
+  return [
+   {id:'gates',t:'Clear 5 Gates',v:gates,n:5,xp:150},
+   {id:'food',t:'Log food on 5 days',v:food,n:5,xp:100},
+   {id:'prot',t:`Hit ${T.p} g protein on 4 days`,v:prot,n:4,xp:100},
+   {id:'cardio',t:'150 min cardio',v:cardio,n:150,u:'min',xp:100},
+   {id:'weigh',t:'Weigh-in: weight + waist',v:weigh?1:0,n:1,xp:50},
+   {id:'mission',t:'8 hours on the Mission',v:mh,n:8,u:'h',xp:100}
+  ].map(q=>({...q,done:q.v>=q.n}));
+}
+function renderWeekly(){
+  const mon=ymd(mondayOf(new Date())),q=weeklyQuests(mon),d=q.filter(x=>x.done).length,left=7-((new Date().getDay()+6)%7);
+  $('weekly').innerHTML=`<div class="wh"><h3 class="sub">Weekly quests</h3><span class="qcount${d===q.length?' all':''}"><b>${d}</b>/${q.length}</span></div>
+   <p class="cue">Tracked from your logs · resets Monday · ${left===1?'last day':left+' days left'}</p>
+   <div class="wq">${q.map(x=>`<div class="wqr${x.done?' done':''}"><div class="wq-t"><span>${esc(x.t)}</span><b>${x.done?'✓':`${x.u==='h'?x.v.toFixed(1):x.v}${x.u?' '+x.u:''} / ${x.n}${x.u?' '+x.u:''}`}</b></div>
+     <div class="mtrack"><i style="width:${Math.min(100,x.v/x.n*100)}%"></i></div><span class="wq-xp">+${x.xp} XP</span></div>`).join('')}</div>`;
+}
+
+/* ---------- penalty quest: 2 missed days in a row ---------- */
+function penaltyState(){
+  const t=new Date(),y1=ymd(addDays(t,-1)),y2=ymd(addDays(t,-2));
+  const miss=ds=>posOf(parseYmd(ds)).days>=0&&dayScore(ds)<0.8&&!isFrozen(ds);
+  if(!miss(y1)||!miss(y2))return null;
+  const n=runBack(addDays(t,-3));return n?{days:[y2,y1],n}:null;
+}
+function renderPenalty(){
+  const el=$('penalty'),ps=penaltyState();if(!ps){el.hidden=true;return}el.hidden=false;
+  const r=getDay(todayStr()),pen=r.pen||{};
+  el.innerHTML=`<div class="pen-h"><span class="pen-ic" aria-hidden="true">!</span><div><p class="k">Penalty quest · today only</p><b>You missed 2 days</b></div></div>
+   <p>Complete both before midnight to restore your <b>${ps.n}-day streak</b>. Miss it and the streak resets.</p>
+   <div class="quests">${[['walk','20-minute walk',prof.asthma?'Talk pace. Asthma-safe.':'Brisk, outdoors if you can'],['squat','50 bodyweight squats','Any number of sets']].map(([k,t,s])=>
+     `<label class="q"><input type="checkbox" data-pen="${k}" ${pen[k]?'checked':''}><span>${t}<small>${s}</small></span></label>`).join('')}</div>`;
+}
+document.addEventListener('change',e=>{const t=e.target;if(!t.dataset.pen)return;const ds=todayStr(),r=getDay(ds);r.pen=r.pen||{};r.pen[t.dataset.pen]=t.checked;setDay(ds,r);
+  if(r.pen.walk&&r.pen.squat){const ps=penaltyState();if(ps){S.set('forgiven',[...new Set([...S.get('forgiven',[]),...ps.days])]);buzz([40,40,120]);
+    if(window.HUD)HUD.levelUp('[ SYSTEM ]','RESTORED',`Penalty cleared. Your ${ps.n}-day streak is back.`)}}
+  renderToday()});
+
+/* ---------- custom habits (manage from Today) ---------- */
+let habitForm=false,habitDays=[0,1,2,3,4,5,6];
+function habitPanel(){
+  const act=habits().filter(h=>!h.to||h.to>todayStr());
+  return `<div class="hab">${habitForm?`<form class="hab-f" id="hab-f"><label class="gs-f"><span>New habit</span><input id="hab-t" maxlength="40" placeholder="e.g. 10 pages reading" autocomplete="off"></label>
+     <div class="hab-days" role="group" aria-label="Days">${DN.map((n,i)=>`<button type="button" data-hd="${i}" aria-pressed="${habitDays.includes(i)}">${n[0]}</button>`).join('')}</div>
+     <div class="t-actions left"><button type="submit" class="primary">Add habit</button><button type="button" class="ghost" data-hab="cancel">Cancel</button></div>
+     ${act.length?`<p class="k" style="margin-top:12px">Your habits</p><ul class="hab-l">${act.map(h=>`<li><span>${esc(h.t)}<small>${!h.days||h.days.length===7?'Every day':h.days.map(i=>DN[i]).join(' ')}</small></span><button type="button" class="ghost small" data-hdel="${h.id}">Remove</button></li>`).join('')}</ul>`:''}
+     <p class="cue">Each habit is a daily quest: +15 XP and it counts toward your streak. Removing a habit keeps its history.</p></form>`
+   :`<button type="button" class="link" data-hab="open">+ Add or manage habits${act.length?` (${act.length})`:''}</button>`}</div>`;
+}
+document.addEventListener('click',e=>{
+  const h=e.target.closest('[data-hab]');if(h){habitForm=h.dataset.hab==='open';renderToday();if(habitForm){const i=$('hab-t');if(i)i.focus()}return}
+  const d=e.target.closest('[data-hd]');if(d){const i=+d.dataset.hd;habitDays=habitDays.includes(i)?habitDays.filter(x=>x!==i):[...habitDays,i].sort();d.setAttribute('aria-pressed',habitDays.includes(i));return}
+  const x=e.target.closest('[data-hdel]');if(x){const ds=todayStr();let a=habits();const hb=a.find(y=>y.id===x.dataset.hdel);if(!hb)return;
+    a=hb.from>=ds?a.filter(y=>y.id!==hb.id):a.map(y=>y.id===hb.id?{...y,to:ds}:y);S.set('habits',a);toast(`Removed "${hb.t}"`);renderToday()}});
+document.addEventListener('submit',e=>{if(e.target.id!=='hab-f')return;e.preventDefault();const t=($('hab-t').value||'').trim();
+  if(!t){$('hab-t').focus();return}if(!habitDays.length){toast('Pick at least one day');return}
+  const a=habits();a.push({id:Date.now().toString(36),t,days:habitDays.length===7?null:habitDays.slice(),from:todayStr()});S.set('habits',a);
+  habitDays=[0,1,2,3,4,5,6];habitForm=false;toast(`Habit added: ${t}`);buzz(15);renderToday()});
+
+/* ---------- badges & titles ---------- */
+function badgeMetrics(){return memo('badgeM',()=>{
+  const days=allDays(),start=prof.start,today=todayStr(),T=targets();
+  let gates=0,water=0;days.forEach(ds=>{const r=getDay(ds);if(r.workout)gates++;if((r.water||0)>=waterL()*1000)water++});
+  let best=0,run=0;for(let d=mondayOf(parseYmd(start));ymd(d)<=today;d=addDays(d,1)){const ds=ymd(d);if(dayScore(ds)>=0.8){run++;best=Math.max(best,run)}else if(ds===today||isFrozen(ds))continue;else run=0}
+  let prs=0,gain=0;histKeys().forEach(k=>{const h=hist(k);if(!h.length)return;const w=h.some(x=>x.sets.some(s=>s.kg>0))&&!h.some(x=>x.u==='s');
+    let run=-1;h.forEach(x=>{const v=w?(x.e1||0):Math.max(...x.sets.map(s=>s.reps||0));if(v>run){if(run>0)prs++;run=v}});
+    if(w){const first=Math.max(...h[0].sets.map(s=>s.kg||0)),top=Math.max(...h.flatMap(x=>x.sets.map(s=>s.kg||0)));gain=Math.max(gain,top-first)}});
+  const l=latestLog(),wts=l.filter(r=>r.wt).map(r=>r.wt),ws=l.filter(r=>r.waist).map(r=>r.waist);
+  let prot=0;try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(P+'food:')){const ds=k.slice((P+'food:').length);if(totals(ds).p>=T.p*0.95)prot++}}}catch(e){}
+  return {gates,water,best,prs,gain,prot,kg:wts.length>1?wts[0]-Math.min(...wts.slice(1)):0,waist:ws.length>1?ws[0]-Math.min(...ws.slice(1)):0,rank:RANKS.indexOf(earnedRank()),lv:Math.floor(xpTotal()/1000)+1}})}
+const BADGES=[
+ ['gate1','Initiate','Clear your first Gate',m=>[m.gates,1]],
+ ['gate10','Gatebreaker','Clear 10 Gates',m=>[m.gates,10]],
+ ['gate50','Veteran','Clear 50 Gates',m=>[m.gates,50]],
+ ['streak3','Kindled','3-day streak',m=>[m.best,3]],
+ ['streak7','Unbroken','7-day streak',m=>[m.best,7]],
+ ['streak30','Relentless','30-day streak',m=>[m.best,30]],
+ ['pr1','Record Breaker','Break your first personal record',m=>[m.prs,1]],
+ ['plus10','Iron Climber','+10 kg on any lift since your first session',m=>[Math.floor(m.gain),10]],
+ ['kg5','Lighter','Lose 5 kg from your first weigh-in',m=>[Math.round(m.kg*10)/10,5]],
+ ['waist5','Tapered','Waist −5 cm from your first measurement',m=>[Math.round(m.waist*10)/10,5]],
+ ['prot7','Brick by Brick','Hit your protein target on 7 days',m=>[m.prot,7]],
+ ['water30','Wellspring','Hit your water goal on 30 days',m=>[m.water,30]],
+ ['rankD','Forged','Pass the D-Rank test',m=>[m.rank,1]],
+ ['lv10','Ascendant','Reach level 10',m=>[m.lv,10]]];
+const BADGE_SVG=(on)=>`<svg viewBox="0 0 48 52" aria-hidden="true"><polygon points="24,2 46,14 46,38 24,50 2,38 2,14" fill="${on?'url(#bd-g)':'#121a30'}" stroke="${on?'#FFE29A':'#26324f'}" stroke-width="2"/>${on?'<path d="M15 26l6 6 12-13" fill="none" stroke="#1a1200" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>':'<rect x="17" y="24" width="14" height="11" rx="2" fill="#26324f"/><path d="M19.5 24v-3a4.5 4.5 0 0 1 9 0v3" fill="none" stroke="#26324f" stroke-width="2.5"/>'}</svg>`;
+function checkBadges(){
+  const m=badgeMetrics(),had=S.get('badges',null),got=had?{...had}:{},fresh=[];
+  BADGES.forEach(([id,n])=>{const [v,t]=BADGES.find(b=>b[0]===id)[3](m);if(v>=t&&!got[id]){got[id]=todayStr();fresh.push(n)}});
+  if(!fresh.length&&had)return;S.set('badges',got);if(!fresh.length||!window.HUD)return;
+  if(!had)HUD.levelUp('[ SYSTEM ]',fresh.length>1?'TITLES':'TITLE',`${fresh.length} unlocked from your history: ${fresh.join(', ')}. Equip one in Stats.`);
+  else fresh.forEach(n=>HUD.levelUp('[ TITLE UNLOCKED ]',n.toUpperCase(),'Equip it in Stats → Status to show it on your status window.'));
+}
+function renderBadges(){
+  const el=$('badges');if(!el)return;const m=badgeMetrics(),got=S.get('badges',{}),eq=S.get('title',null),n=Object.keys(got).length;
+  el.innerHTML=`<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="bd-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE29A"/><stop offset="1" stop-color="#FFC857"/></linearGradient></defs></svg>
+   <div class="wh"><h3 class="sub">Titles</h3><span class="cue">${n} / ${BADGES.length} unlocked</span></div>
+   <p class="cue">Unlock titles with real milestones. Tap an unlocked one to wear it on your status window.</p>
+   <div class="bdg">${BADGES.map(([id,name,desc,f])=>{const on=!!got[id],[v,t]=f(m),pct=Math.max(0,Math.min(100,v/t*100));
+     return `<button type="button" class="bd${on?' on':''}${eq===id?' eq':''}" data-badge="${id}" ${on?'':'aria-disabled="true"'} aria-label="${esc(name)}: ${esc(desc)}${on?`, unlocked ${got[id]}${eq===id?', worn':''}`:`, ${Math.round(pct)}%`}">
+       <span class="bd-i">${BADGE_SVG(on)}</span><b>${esc(name)}</b><small>${esc(desc)}</small>
+       ${on?`<em>${eq===id?'Worn':'Unlocked'}</em>`:`<span class="mtrack"><i style="width:${pct}%"></i></span>`}</button>`}).join('')}</div>`;
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-badge]');if(!b||b.getAttribute('aria-disabled'))return;const id=b.dataset.badge;
+  S.set('title',S.get('title',null)===id?null:id);const nm=BADGES.find(x=>x[0]===id)[1];toast(S.get('title',null)?`Title worn: ${nm}`:'Title removed');buzz(10);renderBadges();header()});
+function titleName(){const id=S.get('title',null);if(!id||!S.get('badges',{})[id])return null;const b=BADGES.find(x=>x[0]===id);return b?b[1]:null}
 
 /* =================================================================
    GOAL + LAZY FOOD DATABASE

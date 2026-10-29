@@ -108,12 +108,19 @@ function ring(pct,label,value){
 }
 
 /* ---------- level up ---------- */
+// Overlays queue up: a level-up and a title unlock at the same moment show one after the other.
+const lvq=[];
 function levelUp(t1,t2,t3){
   let o=document.getElementById('lvup');
-  if(!o){o=document.createElement('div');o.id='lvup';o.className='lvup';o.setAttribute('role','alertdialog');o.innerHTML='<div class="core"><div class="rings"><i></i><i></i><i></i></div><div class="t1"></div><div class="t2"></div><div class="t3"></div><button type="button" class="primary" style="margin-top:14px">Continue</button></div>';document.body.appendChild(o);
-    o.querySelector('button').onclick=()=>{o.hidden=true}}
+  if(!o){o=document.createElement('div');o.id='lvup';o.className='lvup';o.hidden=true;o.setAttribute('role','alertdialog');o.innerHTML='<div class="core"><div class="rings"><i></i><i></i><i></i></div><div class="t1"></div><div class="t2"></div><div class="t3"></div><button type="button" class="primary" style="margin-top:14px">Continue</button></div>';document.body.appendChild(o);
+    o.querySelector('button').onclick=()=>{const n=lvq.shift();if(n)show(o,n);else o.hidden=true}}
+  if(!o.hidden){lvq.push([t1,t2,t3]);return}
+  show(o,[t1,t2,t3]);
+}
+function show(o,[t1,t2,t3]){
   o.querySelector('.t1').textContent=t1;o.querySelector('.t2').textContent=t2;o.querySelector('.t3').textContent=t3||'';o.hidden=false;
-  if(navigator.vibrate)navigator.vibrate([40,40,90]);
+  const t2e=o.querySelector('.t2');t2e.style.animation='none';void t2e.offsetWidth;t2e.style.animation='';
+  try{if(navigator.vibrate&&(!navigator.userActivation||navigator.userActivation.hasBeenActive))navigator.vibrate([40,40,90])}catch(e){}
 }
 
 window.HUD={startBg,renderMentor,ring,levelUp,MENTORS};

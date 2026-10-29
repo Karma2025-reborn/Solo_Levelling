@@ -371,6 +371,55 @@ label.ghost.ph-btn{background:rgba(79,216,255,.06);color:var(--cyan);border:1px 
 .cmp-in:focus-visible+*,.cmp:has(.cmp-in:focus-visible){outline:2px solid var(--cyan);outline-offset:2px}
 .cmp-d{margin-top:10px}
 
+/* ---------- Quests & habits (v8.3) ---------- */
+.frz{color:#9FE7FF}
+.penwin{background:radial-gradient(ellipse 80% 120% at 0 0,rgba(255,84,112,.2),transparent 60%),linear-gradient(180deg,rgba(40,12,24,.95),rgba(16,8,18,.95))}
+.penwin::before{background:linear-gradient(135deg,rgba(255,84,112,.9),rgba(255,84,112,.15))}
+.penwin>p{margin:12px 0 0}
+.pen-h{display:flex;gap:12px;align-items:center}
+.pen-h .k{color:var(--red)}
+.pen-h b{font:700 var(--t-lg) var(--display)}
+.pen-ic{flex:none;width:40px;height:44px;display:grid;place-items:center;font:700 24px var(--display);color:#fff;background:var(--red);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);animation:pulse 1.6s ease-in-out infinite}
+.penwin .quests{grid-template-columns:1fr}
+.penwin .q input{border-color:var(--red)}
+.wq{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.wqr{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center}
+.wq-t{display:flex;justify-content:space-between;gap:8px;grid-column:1/-1}
+.wq-t span{font-weight:500}
+.wq-t b{font:700 14px var(--display);color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.wqr .mtrack{height:6px}
+.wqr .mtrack i{background:linear-gradient(90deg,var(--violet),var(--cyan));transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.wq-xp{font:700 12px var(--display);color:var(--gold);min-width:56px;text-align:right}
+.wqr.done .wq-t b{color:var(--ok)}
+.wqr.done .mtrack i{background:var(--ok)}
+.wqr.done .wq-xp{opacity:.55}
+.hab{margin-top:12px}
+.hab-f{display:flex;flex-direction:column;gap:12px;padding:12px;background:rgba(79,216,255,.04);border:1px solid rgba(79,216,255,.18)}
+.hab-f .gs-f input{font:600 18px var(--body);text-align:left}
+.hab-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.hab-days button{min-height:44px;font:700 14px var(--display);color:var(--muted);background:transparent;border:1px solid rgba(79,216,255,.25);cursor:pointer}
+.hab-days button[aria-pressed="true"]{color:#02060F;background:var(--cyan);border-color:var(--cyan)}
+.hab-l{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.hab-l li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(79,216,255,.08)}
+.hab-l small{display:block;color:var(--muted);font-size:12px}
+.hab-l .small{min-height:44px}
+.q:has(input[data-quest^="h:"]) span::before{content:"◆ ";color:var(--violet);font-size:11px;vertical-align:2px}
+/* titles / badges */
+.bdg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+.bd{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:44px;padding:12px;text-align:left;font:inherit;color:var(--ink);cursor:pointer;
+  background:rgba(79,216,255,.03);border:1px solid rgba(79,216,255,.1)}
+.bd[aria-disabled]{cursor:default}
+.bd-i{width:40px;height:44px}.bd-i svg{width:100%;height:100%}
+.bd b{font:700 15px var(--display)}
+.bd small{font-size:12px;color:var(--muted);line-height:1.35}
+.bd em{font:700 11px var(--display);font-style:normal;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.bd .mtrack{width:100%;height:4px;margin-top:4px}.bd .mtrack i{background:var(--dim)}
+.bd:not(.on) b{color:var(--muted)}
+.bd.on{background:linear-gradient(135deg,rgba(255,200,87,.1),rgba(79,216,255,.03));border-color:rgba(255,200,87,.35)}
+.bd.on .bd-i{filter:drop-shadow(0 0 8px rgba(255,200,87,.6))}
+.bd.eq{box-shadow:0 0 0 2px var(--gold),0 0 18px rgba(255,200,87,.3)}
+.lvup .t2{font-size:clamp(30px,11vw,64px);text-align:center;max-width:92vw}
+
 @media (max-width:380px){
   .gm-figrow{grid-template-columns:104px 1fr}.gm-fig{width:104px;height:92px}.gs-row{grid-template-columns:28px 1fr 1fr 64px;gap:6px}.gs-f input{font-size:20px}
   .gatewin{grid-template-columns:72px 1fr}.gate-art{width:72px;height:80px}.gate-svg{width:72px;height:72px}

@@ -1,4 +1,4 @@
-# ARETE v8.2 · Level up in real life
+# ARETE v8.3 · Level up in real life
 
 *Arete* is Greek for excellence. ARETE (formerly Hunter System) is an E → S rank transformation app that installs on your phone and works offline. Your data never leaves the phone.
 
@@ -11,6 +11,14 @@
 | **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
 | **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
 | **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
+
+## v8.3: Quests and habits
+- **Weekly quests** (Today, under daily quests): Clear 5 Gates (+150 XP), log food on 5 days, hit your protein on 4 days, 150 min cardio, weigh-in with waist (+50), 8 hours on the Mission (+100 each). They track themselves from your logs and reset every Monday. Past weeks count too.
+- **Custom habits**: *+ Add or manage habits* under daily quests. Name it ("10 pages reading", "no sugar in chai"), pick the days, done. Each habit is a daily quest: +15 XP and it counts toward your streak. Removing one keeps its history.
+- **Streak freeze**: rest days (Sunday) and asthma red days no longer break your streak. If you don't hit 80% that day it's frozen ❄ instead of reset.
+- **Penalty quest**: miss 2 days in a row and a red Penalty Quest appears on Today: a 20-minute walk (talk pace) + 50 bodyweight squats. Finish both before midnight and your streak is restored.
+- **Titles**: 14 milestones (first Gate, 10 / 50 Gates, 3 / 7 / 30-day streak, first PR, +10 kg on a lift, −5 kg, −5 cm waist, protein 7 days, water 30 days, D-Rank, level 10). Unlocking one shows a TITLE UNLOCKED screen; the first time you open v8.3, titles you already earned are unlocked together. Tap an unlocked title in **Stats → Status** to wear it on your status window.
+- Level-up and title screens now queue instead of overwriting each other, and vibration only happens after you've touched the app.
 
 ## v8.2: Progress
 Stats now has five sections along the top: **Status · Records · Calendar · Charts · Photos** (it remembers the last one you used).
