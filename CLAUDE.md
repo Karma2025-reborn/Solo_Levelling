@@ -17,6 +17,11 @@ no backend, no tracking. Hosted on GitHub Pages from repo `Karma2025-reborn/Solo
 - Profile fields added in v8: `prof.name`, `prof.goal` (`cut` | `strength` | `both`, display only: it does
   not change training or nutrition). Keys added in v8: `hunter:onboarded` (System Awakening done),
   `hunter:tlOpen` (day plan folded state). Existing users with any logs are marked onboarded automatically.
+- Gate mode (v8.1, "GATE MODE" section of `js/app.js`) writes the **same** keys as Body: `wl:<ds>:<key>` +
+  `saveHist` for sets, `actlog` ids `w:<ds>:<key>` (cardio) and `m:<ds>:<label>` (mobility), and
+  `day.workout` on clear (plus `gate:true, min`). Only new key: `hunter:gateRun` `{ds,i,done,t0}` (resume
+  position, deleted on clear). Rest times: `restFor()`. Steps honour `adaptItems` (doctor review) and the
+  asthma light day.
 - Stage names are original: E Awakening · D The Forge · C Proving Ground · B Refinement · A Ascent · S Apex.
   Don't reintroduce anime terms (Arise, Shadow Monarch, Dungeon, "Daily Quest 100/100/100/10 km" …).
 - "Hunter" as the *player's* title (e.g. "D-Rank Hunter", "Hunter stats") is game flavour, not the app name.

@@ -188,7 +188,8 @@ function renderGate(p,sess,rec,st){
   else if(rec.workout){state='clear';line='Gate cleared. Log any extra sets in Body.'}
   else if(br==='r'){state='sealed';line='Breathing check is red: the Gate stays sealed today. Rest and follow your asthma plan.'}
   else if(br==='y'){state='light';line='Yellow zone: enter the light version only. 30 min easy walk + mobility, no heavy sets.'}
-  btn=state==='open'||state==='light'?`<button type="button" class="primary big gate-go" id="go-workout">Enter Gate</button>`:state==='clear'?`<button type="button" class="ghost" id="go-workout">View workout</button>`:'';
+  const resume=S.get('gateRun',{}).ds===todayStr();
+  btn=state==='open'||state==='light'?`<button type="button" class="primary big gate-go" id="go-workout">${resume?'Resume Gate':'Enter Gate'}</button>`:state==='clear'?`<button type="button" class="ghost" id="go-workout">View workout</button>`:'';
   el.dataset.state=state;
   el.innerHTML=`<div class="gate-art">${GATE_SVG}</div>
    <div class="gate-b"><span class="k">Today's Gate · ${st.rank}-Rank${state==='clear'?' · <b class="okc">Cleared</b>':''}</span>
@@ -196,7 +197,7 @@ function renderGate(p,sess,rec,st){
     ${sess.rest?'':`<div class="gate-meta"><span>${total} min</span><span>${strength} exercises</span><span class="gxp">+${gateXP(sess)} XP</span></div>
     <div class="bar">${sess.blocks.map(b=>`<i style="flex:${b.min};background:${COL[b.kind]}"></i>`).join('')}</div>`}
     ${line?`<p class="cue gate-line">${line}</p>`:''}${sess.note?`<p class="cue">${esc(sess.note)}</p>`:''}</div>${btn}`;
-  const gw=$('go-workout');if(gw)gw.onclick=()=>{selW=p.w;selD=p.d;showView('plan')};
+  const gw=$('go-workout');if(gw)gw.onclick=()=>{if(state==='clear'){selW=p.w;selD=p.d;showView('plan')}else openGate()};
 }
 
 /* ---------- Today: water + protein quick-add ---------- */
@@ -259,8 +260,9 @@ function renderSession(){
   if(sess.test)h+=`<p class="note">Rank assessment. Enter your results in Status → Rank test.</p>`;
   if(total)h+=`<div class="bar">${sess.blocks.map(b=>`<i style="flex:${b.min};background:${COL[b.kind]}"></i>`).join('')}</div><div class="legend">${sess.blocks.map(b=>`<span style="--c:${COL[b.kind]}">${esc(b.label)} ${b.min} min</span>`).join('')}</div>`;
   if(!isToday&&!sess.rest)h+=`<p class="cue" style="margin-top:10px">Sets you log here are saved to today's date.</p>`;
+  if(isToday&&!sess.rest&&!getDay(ds).workout)h+=`<button type="button" class="primary big" id="body-gate" style="width:100%;margin-top:16px">Enter Gate · one exercise at a time</button>`;
   h+='</section>';
-  const root=$('day');root.innerHTML=h;
+  const root=$('day');root.innerHTML=h;const bg=$('body-gate');if(bg)bg.onclick=()=>openGate();
   if(sess.rest){root.insertAdjacentHTML('beforeend','<section class="win rest"><b>Recovery</b><p class="cue">Muscles grow on rest days. Easy walk for your steps, eat your protein, sleep early.</p></section>');return}
   let n=0;
   sess.blocks.forEach(bl=>{
@@ -1425,6 +1427,193 @@ function initReset(){
 
 /* ---------- toast ---------- */
 function toast(t){let el=$('toast');if(!el){el=document.createElement('div');el.id='toast';el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)}el.textContent=t;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('on'),2200)}
+
+/* =================================================================
+   GATE MODE — full-screen workout, one exercise at a time (v8.1)
+   Same storage as Body: wl:<ds>:<key> sets + hist:<key>, actlog for cardio
+   and mobility, day.workout when cleared. Position: hunter:gateRun.
+   ================================================================= */
+const GT={open:false,ds:null,p:null,sess:null,light:false,steps:[],i:0,done:{},extra:{},t0:0,xp0:0,restEnd:0,restTotal:0,restInt:null,confirm:false};
+const HEAVY=['bbbench','squat','bbrow','ohp','deadlift','dead'];
+function restFor(bl,key){if(bl.kind==='core')return 45;if(/pump/i.test(bl.label||''))return 60;if(HEAVY.includes(key))return 150;const m=/Rest (\d+)–(\d+) s/.exec(bl.how||'');return m?+m[2]:90}
+function gateSteps(sess,light){
+  if(light)return [{type:'cardio',key:'walk',dose:'30 min easy walk, talk pace',bl:{kind:'cardio',label:'Light day'}},
+    {type:'text',bl:{kind:'stretch',label:'Mobility',min:15,text:'Easy mobility for hips, hamstrings, chest and shoulders. Slow nose breathing. Nothing hard today.'}}];
+  const out=[];
+  sess.blocks.forEach(b=>{const bl=prof.medHold&&b.items?{...b,items:adaptItems(b.items)}:b;
+    if(!bl.items||!bl.items.length){out.push({type:'text',bl});return}
+    bl.items.forEach(([key,dose])=>{if(!EX[key])return;const mode=logMode(bl.kind,key,dose);
+      out.push({type:mode==='cardio'?'cardio':mode?'sets':'info',mode,key,dose,bl})})});
+  return out;
+}
+const gSets=k=>S.get(wlKey(GT.ds,k),[]);
+function nSets(st){return Math.max(setsIn(st.dose)||3,(gSets(st.key).length||0))+(GT.extra[st.key]||0)}
+function stepDone(k){const st=GT.steps[k];if(!st)return false;
+  if(st.type==='sets')return gSets(st.key).filter(s=>s&&s.reps>0).length>=(setsIn(st.dose)||3);
+  if(st.type==='cardio')return actLog().some(x=>x.id===`w:${GT.ds}:${st.key}`&&x.min>0);
+  if(st.type==='text'&&st.bl.kind==='stretch')return actLog().some(x=>x.id===`m:${GT.ds}:${st.bl.label}`);
+  return !!GT.done[k]}
+function saveRun(){S.set('gateRun',{ds:GT.ds,i:GT.i,done:GT.done,t0:GT.t0})}
+
+function openGate(){
+  const now=new Date(),ds=ymd(now),p=posOf(now),sess=Plan.program(p.w,p.d),rec=getDay(ds);
+  if(sess.rest||(prof.asthma&&rec.breath==='r'))return;
+  const light=!!(prof.asthma&&rec.breath==='y'),run=S.get('gateRun',{}),same=run.ds===ds;
+  Object.assign(GT,{open:true,ds,p,sess,light,steps:gateSteps(sess,light),done:same?(run.done||{}):{},extra:{},t0:same&&run.t0?run.t0:Date.now(),xp0:xpTotal(),confirm:false});
+  GT.i=Math.max(0,Math.min(same?(run.i||0):0,GT.steps.length-1));
+  let o=$('gatemode');
+  if(!o){o=document.createElement('div');o.id='gatemode';o.className='gatemode';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');o.setAttribute('aria-label','Gate: workout mode');
+    o.innerHTML=`<div class="gm-top"><button type="button" class="gm-x" data-g="close" aria-label="Leave Gate (progress is saved)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div class="gm-prog" id="gm-prog" aria-hidden="true"></div><span class="gm-n" id="gm-n"></span></div>
+      <div class="gm-stage" id="gm-stage"></div><div class="gm-nav" id="gm-nav"></div><div class="gm-rest" id="gm-rest" hidden></div>`;
+    document.body.appendChild(o);bindGate(o)}
+  o.hidden=false;o.classList.remove('cleared');document.body.classList.add('locked');wake(true);audio();saveRun();
+  try{history.pushState({gate:1},'')}catch(e){}
+  renderGateStep(0);
+}
+function closeGate(fromPop){
+  if(!GT.open)return;
+  if(!fromPop&&history.state&&history.state.gate){history.back();return}
+  GT.open=false;stopRest();wake(false);const o=$('gatemode');if(o)o.hidden=true;document.body.classList.remove('locked');refresh();
+}
+window.addEventListener('popstate',()=>{if(GT.open)closeGate(true)});
+
+function renderGateStep(dir){
+  const st=GT.steps[GT.i],n=GT.steps.length,ds=GT.ds;
+  $('gm-prog').innerHTML=GT.steps.map((_,k)=>`<i class="${stepDone(k)?'ok':''}${k===GT.i?' on':''}"></i>`).join('');
+  $('gm-n').textContent=`${GT.i+1}/${n}`;
+  const e=st.key?EX[st.key]:null;let h='';
+  const head=(tag,title,sub)=>`<p class="gm-tag" style="--c:${COL[st.bl.kind]||'var(--cyan)'}">${tag}</p><h2 class="gm-h">${esc(title)}</h2>${sub?`<p class="gm-dose">${esc(sub)}</p>`:''}`;
+  if(st.type==='sets'){
+    const last=lastBefore(st.key,ds),cur=gSets(st.key),ns=nSets(st),isW=st.mode==='sets';
+    const act=[...Array(ns).keys()].find(i=>!(cur[i]&&cur[i].reps>0));
+    const ph=i=>(last&&(last.sets[i]||last.sets[last.sets.length-1]))||{};
+    h=head(`${esc(st.bl.label)} · ${esc(e.m)}`,e.n,st.dose)+
+     `<div class="gm-figrow"><div class="gm-fig" id="gm-fig"></div><div class="gm-last">${last?`<span class="k">Last time · ${last.date.slice(5).split('-').reverse().join('/')}</span><b>${last.sets.map(s=>`${s.kg?s.kg+'×':''}${s.reps}${last.u==='s'?' s':''}`).join('  ')}</b>`:'<span class="k">First time</span><b>Find a weight you can lift with good form</b>'}
+       <button type="button" class="link" data-g="how">How to do it</button></div></div>
+     ${progCue(st.dose,last)}
+     <div class="gs" role="group" aria-label="Sets">${[...Array(ns).keys()].map(i=>{const v=cur[i]||{},done=v.reps>0,p=ph(i);
+       return `<div class="gs-row${done?' done':''}${i===act?' act':''}"><span class="gs-n">${done?'✓':i+1}</span>
+        ${isW?`<label class="gs-f"><span>Weight kg</span><input type="number" inputmode="decimal" step="0.5" min="0" data-gk="kg" data-i="${i}" value="${v.kg??''}" placeholder="${p.kg??'–'}" aria-label="Set ${i+1} weight kg"></label>`:''}
+        <label class="gs-f"><span>${st.mode==='secs'?'Seconds':'Reps'}</span><input type="number" inputmode="numeric" step="1" min="0" data-gk="reps" data-i="${i}" value="${v.reps??''}" placeholder="${p.reps??'–'}" aria-label="Set ${i+1} ${st.mode==='secs'?'seconds':'reps'}"></label>
+        <button type="button" class="gs-ok" data-g="set" data-i="${i}" aria-label="Log set ${i+1}">${done?'Edit':'Log'}</button></div>`}).join('')}</div>
+     ${act!=null?`<div class="gs-step" aria-label="Adjust set ${act+1}">${isW?`<button type="button" data-g="adj" data-f="kg" data-d="-2.5">−2.5 kg</button><button type="button" data-g="adj" data-f="kg" data-d="2.5">+2.5 kg</button>`:''}<button type="button" data-g="adj" data-f="reps" data-d="-1">−1</button><button type="button" data-g="adj" data-f="reps" data-d="1">+1</button></div>`:''}
+     <div class="gm-row2"><button type="button" class="link" data-g="addset">+ Add a set</button><span class="cue">Rest ${restFor(st.bl,st.key)} s after each set</span></div>
+     <p class="cue">${isW?'Empty boxes use the grey numbers from last time. Bodyweight move? Leave weight empty.':st.mode==='secs'?'Seconds held with good form. Stop when your hips sag.':'Reps with good form.'}</p>`;
+  }
+  else if(st.type==='cardio'){
+    const id=`w:${ds}:${st.key}`,cur=actLog().find(x=>x.id===id)||{},d=defMin(st.dose);
+    h=head(`${esc(st.bl.label)}${e?' · '+esc(e.m):''}`,e?e.n:'Walk',st.dose)+`<div class="gm-figrow"><div class="gm-fig" id="gm-fig"></div><div class="gm-last">${cardioLast(st.key,ds)||'<span class="k">Talk pace</span><b>You can speak in full sentences</b>'}</div></div>
+     <div class="gc-grid"><label class="gs-f"><span>Minutes</span><input type="number" inputmode="numeric" min="0" step="1" id="gc-min" value="${cur.min??d}"></label>
+      <label class="gs-f"><span>Distance km</span><input type="number" inputmode="decimal" min="0" step="0.1" id="gc-km" value="${cur.km??''}" placeholder="optional"></label></div>
+     <p class="k" style="margin-top:12px">Effort</p><div class="gm-chips">${EFF.map(([v,t])=>`<button type="button" class="chip${cur.eff===v?' on':''}" data-g="eff" data-v="${v}">${t}</button>`).join('')}</div>
+     ${prof.asthma?`<p class="k" style="margin-top:12px">Breathing</p><div class="gm-chips">${[['ok','Fine'],['tight','Got tight'],['inh','Used inhaler']].map(([v,t])=>`<button type="button" class="chip${v!=='ok'?' warn':''}${cur.br===v?' on':''}" data-g="br" data-v="${v}">${t}</button>`).join('')}</div>`:''}
+     <button type="button" class="primary big gm-done" data-g="cardio">${cur.min>0?'Update · done ✓':'Mark done'}</button>
+     <p class="cue">Fat-burn zone ≈ ${Math.round((220-(prof.age||35))*0.6)}–${Math.round((220-(prof.age||35))*0.7)} bpm.</p>`;
+  }
+  else{
+    const bl=st.bl,done=stepDone(GT.i);
+    h=head(bl.kind==='warm'?'Prepare':bl.kind==='stretch'?'Cool down':esc(bl.label),e?e.n:bl.label,e?st.dose:`${bl.min} min`)+
+     (e?`<div class="gm-figrow"><div class="gm-fig" id="gm-fig"></div></div>`:`<div class="gm-art" aria-hidden="true">${GATE_SVG}</div>`)+
+     `${bl.text?`<p class="gm-text">${esc(bl.text)}</p>`:''}${prof.asthma&&bl.kind==='warm'?'<p class="note asn">Asthma mode: build up slowly for 12–15 min. Reliever inhaler in your bag.</p>':''}
+     <button type="button" class="${done?'ghost':'primary'} big gm-done" data-g="textdone">${done?'Done ✓':'Mark done'}</button>`;
+  }
+  const stage=$('gm-stage');stage.innerHTML=`<div class="gm-in ${dir>0?'from-r':dir<0?'from-l':''}">${h}</div>`;stage.scrollTop=0;
+  const fg=$('gm-fig');if(fg&&e)fg.appendChild(Fig.svg(e.fig,HEX[st.bl.kind]||'#4FD8FF',e.n));
+  const open=GT.steps.filter((_,k)=>!stepDone(k)).length;
+  $('gm-nav').innerHTML=`<button type="button" class="ghost" data-g="prev" ${GT.i===0?'disabled':''} aria-label="Previous exercise">‹</button>`+
+   (GT.i<n-1?`<button type="button" class="primary" data-g="next">Next · ${esc(nextName(GT.i+1))}</button>`
+    :`<button type="button" class="primary gm-clear" data-g="finish">${GT.confirm&&open?`Clear anyway · ${open} open`:'Clear Gate'}</button>`);
+}
+function nextName(k){const s=GT.steps[k];if(!s)return '';return s.key&&EX[s.key]?EX[s.key].n:s.bl.label}
+function gotoStep(k){if(k<0||k>=GT.steps.length)return;const d=k>GT.i?1:-1;GT.i=k;GT.confirm=false;saveRun();renderGateStep(d)}
+
+function gLogSet(i){
+  const st=GT.steps[GT.i],row=$('gm-stage').querySelectorAll('.gs-row')[i];if(!row)return;
+  const val=f=>{const inp=row.querySelector(`[data-gk=${f}]`);if(!inp)return null;const v=parseFloat(inp.value!==''?inp.value:inp.placeholder);return isNaN(v)?null:v};
+  const reps=val('reps'),kg=st.mode==='sets'?val('kg'):null;
+  if(!(reps>0)){toast(st.mode==='secs'?'Enter the seconds you held':'Enter your reps first');const r=row.querySelector('[data-gk=reps]');if(r)r.focus();return}
+  const arr=gSets(st.key);arr[i]={...(arr[i]||{}),reps};if(st.mode==='sets')arr[i].kg=kg||0;
+  S.set(wlKey(GT.ds,st.key),arr);
+  saveHist(st.key,GT.ds,arr.filter(Boolean).map(s=>({kg:s.kg||0,reps:s.reps||0})),st.mode==='secs'?'s':undefined);
+  if(st.mode==='sets'&&kg&&reps>25&&kg<=15)toast(`${kg} kg × ${reps} reps? Weight goes in the first box.`);
+  buzz(20);
+  const left=[...Array(nSets(st)).keys()].some(k=>!(arr[k]&&arr[k].reps>0));
+  renderGateStep(0);
+  if(left)startGateRest(restFor(st.bl,st.key),`Next: set ${arr.filter(s=>s&&s.reps>0).length+1} of ${EX[st.key].n}`);
+  else if(GT.i<GT.steps.length-1)startGateRest(restFor(st.bl,st.key),`Exercise done. Next: ${nextName(GT.i+1)}`);
+}
+function gAdj(f,d){
+  const row=$('gm-stage').querySelector('.gs-row.act');if(!row)return;const inp=row.querySelector(`[data-gk=${f}]`);if(!inp)return;
+  const base=parseFloat(inp.value!==''?inp.value:inp.placeholder)||0;inp.value=Math.max(0,Math.round((base+d)*10)/10);buzz(5);
+}
+function startGateRest(sec,next){
+  GT.restTotal=sec;GT.restEnd=Date.now()+sec*1000;const r=$('gm-rest');r.hidden=false;
+  r.innerHTML=`<div class="gr-in"><div class="gr-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="gr-bg" cx="60" cy="60" r="52"/><circle class="gr-fg" id="gr-fg" cx="60" cy="60" r="52" transform="rotate(-90 60 60)"/></svg><div class="gr-c"><span class="k">Rest</span><b id="gr-t" role="timer"></b></div></div>
+   <div class="gr-side"><p class="gr-next">${esc(next)}</p><div class="gr-btns"><button type="button" class="ghost" data-g="rest15">+15 s</button><button type="button" class="primary" data-g="restskip">Skip</button></div></div></div>`;
+  clearInterval(GT.restInt);GT.restInt=setInterval(gRestTick,200);gRestTick();
+}
+function gRestTick(){
+  const fg=$('gr-fg');if(!fg)return;const left=Math.max(0,(GT.restEnd-Date.now())/1000),C=2*Math.PI*52;
+  fg.style.strokeDasharray=C;fg.style.strokeDashoffset=C*(1-left/GT.restTotal);$('gr-t').textContent=fmt(left);
+  if(left<=0){stopRest();beep();buzz([300,120,300]);toast('Rest over. Next set.')}
+}
+function stopRest(){clearInterval(GT.restInt);GT.restInt=null;const r=$('gm-rest');if(r){r.hidden=true;r.innerHTML=''}}
+
+function gCardioSave(patch){const st=GT.steps[GT.i],id=`w:${GT.ds}:${st.key}`;const cur=actLog().find(x=>x.id===id)||{id,date:GT.ds,key:st.key,type:st.key,src:'gate'};Object.assign(cur,patch);saveAct(cur)}
+
+function finishGate(){
+  const ds=GT.ds,r=getDay(ds),mins=Math.max(1,Math.round((Date.now()-GT.t0)/60000));
+  if(!r.workout){r.workout={w:GT.p.w,d:GT.p.d,t:GT.light?'Light day':GT.sess.t,at:Date.now(),gate:true,min:mins};if(GT.light)r.q.light=true;setDay(ds,r)}
+  stopRest();S.del('gateRun');
+  const gained=Math.max(0,xpTotal()-GT.xp0);
+  let sets=0,vol=0;const prs=[];
+  GT.steps.filter(s=>s.type==='sets').forEach(s=>{
+    const arr=gSets(s.key).filter(x=>x&&x.reps>0);sets+=arr.length;arr.forEach(x=>{vol+=(x.kg||0)*x.reps});
+    const h=hist(s.key),t=h.find(x=>x.date===ds),prev=h.filter(x=>x.date<ds);if(!t||!prev.length)return;
+    if(s.mode==='sets'&&t.e1>0){const best=Math.max(...prev.map(x=>x.e1||0));if(t.e1>best)prs.push([EX[s.key].n,`${t.e1} kg est. 1-rep max`,`+${Math.round((t.e1-best)*10)/10} kg`])}
+    else{const br=Math.max(...prev.flatMap(x=>x.sets.map(y=>y.reps))),tr=Math.max(...t.sets.map(y=>y.reps));if(tr>br)prs.push([EX[s.key].n,`${tr} ${s.mode==='secs'?'s':'reps'}`,`+${tr-br}`])}});
+  const o=$('gatemode');o.classList.add('cleared');
+  $('gm-prog').innerHTML=GT.steps.map(()=>'<i class="ok"></i>').join('');$('gm-n').textContent='';
+  $('gm-stage').innerHTML=`<div class="gc">
+    <div class="gc-burst" aria-hidden="true">${GATE_SVG}</div>
+    <p class="aw-sys">[ System ]</p><h1 class="gc-t">GATE<br>CLEARED</h1><p class="cue">${esc(GT.light?'Light day':GT.sess.t)} · ${mins} min</p>
+    <div class="gc-xp">+<b id="gc-xp">0</b> XP</div>
+    <div class="aw-stats"><div><b>${sets}</b><span>sets</span></div><div><b>${Math.round(vol).toLocaleString('en-IN')}</b><span>kg lifted</span></div><div><b>${mins}</b><span>minutes</span></div></div>
+    ${prs.length?`<div class="gc-prs"><p class="k">New personal records</p>${prs.map(([n,v,d])=>`<div class="gc-pr"><span class="gc-badge">PR</span><span><b>${esc(n)}</b><small>${esc(v)}</small></span><em>${esc(d)}</em></div>`).join('')}</div>`
+      :'<p class="cue">No new records today. Beat one number next time.</p>'}</div>`;
+  $('gm-nav').innerHTML='<button type="button" class="primary big" data-g="close">Return</button>';
+  buzz([40,60,40,60,140]);
+  const el=$('gc-xp'),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce||!gained)el.textContent=gained;else{const t0=performance.now();const step=t=>{const k=Math.min(1,(t-t0)/1200);el.textContent=Math.round(gained*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(step)};setTimeout(()=>requestAnimationFrame(step),450)}
+}
+
+function bindGate(o){
+  o.addEventListener('click',e=>{const b=e.target.closest('[data-g]');if(!b)return;const a=b.dataset.g,st=GT.steps[GT.i];
+    if(a==='close'){closeGate();return}
+    if(a==='next'){stopRest();gotoStep(GT.i+1);return}
+    if(a==='prev'){stopRest();gotoStep(GT.i-1);return}
+    if(a==='set'){gLogSet(+b.dataset.i);return}
+    if(a==='adj'){gAdj(b.dataset.f,+b.dataset.d);return}
+    if(a==='addset'){GT.extra[st.key]=(GT.extra[st.key]||0)+1;renderGateStep(0);return}
+    if(a==='how'){openSheet(st.key);return}
+    if(a==='rest15'){GT.restEnd+=15000;GT.restTotal+=15;gRestTick();return}
+    if(a==='restskip'){stopRest();return}
+    if(a==='eff'||a==='br'){gCardioSave({[a]:b.dataset.v,min:parseFloat($('gc-min').value)||0});if(a==='br'&&b.dataset.v!=='ok')toast('Slow to an easy pace. Stop if it does not settle in 2–3 minutes.');renderGateStep(0);return}
+    if(a==='cardio'){const min=parseFloat($('gc-min').value)||0,km=parseFloat($('gc-km').value)||0;if(!(min>0)){toast('Enter the minutes');return}gCardioSave({min,km});buzz(20);toast(`${min} min logged`);renderGateStep(0);return}
+    if(a==='textdone'){const bl=st.bl;if(bl.kind==='stretch'){const id=`m:${GT.ds}:${bl.label}`;if(!actLog().some(x=>x.id===id))saveAct({id,date:GT.ds,key:'mob',type:'mob',min:bl.min,src:'gate'})}else GT.done[GT.i]=true;
+      saveRun();buzz(15);if(GT.i<GT.steps.length-1)gotoStep(GT.i+1);else renderGateStep(0);return}
+    if(a==='finish'){const open=GT.steps.filter((_,k)=>!stepDone(k)).length;if(open&&!GT.confirm){GT.confirm=true;renderGateStep(0);return}finishGate();return}
+  });
+  // typing a value saves it straight away (same as Body)
+  o.addEventListener('change',e=>{const t=e.target;if(!t.dataset.gk)return;const st=GT.steps[GT.i],i=+t.dataset.i,arr=gSets(st.key);
+    if(!arr[i]||!(arr[i].reps>0))return;const v=parseFloat(t.value);arr[i][t.dataset.gk]=isNaN(v)?null:v;S.set(wlKey(GT.ds,st.key),arr);
+    saveHist(st.key,GT.ds,arr.filter(Boolean).map(s=>({kg:s.kg||0,reps:s.reps||0})),st.mode==='secs'?'s':undefined)});
+  // swipe between exercises
+  let sx=0,sy=0,on=false;
+  o.addEventListener('touchstart',e=>{if(e.target.closest('input,.gm-rest,.gs-step,.gm-chips'))return;on=true;sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+  o.addEventListener('touchend',e=>{if(!on||o.classList.contains('cleared'))return;on=false;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.5){stopRest();gotoStep(GT.i+(dx<0?1:-1))}},{passive:true});
+}
 
 /* =================================================================
    GOAL + LAZY FOOD DATABASE

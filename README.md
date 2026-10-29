@@ -1,4 +1,4 @@
-# ARETE v8.0 · Level up in real life
+# ARETE v8.1 · Level up in real life
 
 *Arete* is Greek for excellence. ARETE (formerly Hunter System) is an E → S rank transformation app that installs on your phone and works offline. Your data never leaves the phone.
 
@@ -11,6 +11,15 @@
 | **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
 | **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
 | **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
+
+## v8.1: Gates (focus workout mode)
+- **Enter Gate** (Today, or the top of Body) opens a full-screen workout: one exercise at a time, with a progress bar, the animated figure and **How to do it**.
+- **Big set logger**: one row per set with **WEIGHT kg | REPS** (seconds for holds) and a **Log** button. Last time's numbers show in grey and are used if you leave a box empty, so "same as last time" is one tap. **−2.5 kg / +2.5 kg / −1 / +1** buttons adjust the current set. The double-progression cue ("add 2.5 kg today", "same weight, beat by 1 rep") sits above the sets. **+ Add a set** for extra work.
+- **Auto rest timer** after each set (90 s; 45 s abs, 60 s pump day, 150 s heavy barbell lifts) with a ring, **+15 s**, **Skip**, and a beep + vibration when it ends.
+- **Swipe** left / right (or the buttons) to move between exercises. Cardio steps log minutes, distance, effort and (asthma mode) breathing; warm-up and stretch steps are one tap. Asthma yellow day enters a light Gate (walk + mobility); red keeps it sealed.
+- Leave any time with ✕ or the phone's back button: everything is saved and **Resume Gate** picks up where you were.
+- **GATE CLEARED** screen: XP count-up, sets, kg lifted, minutes, and **new personal records** (best estimated 1-rep max, or most reps / seconds) highlighted.
+- Same data as before: sets logged in a Gate show in Body, Stats and exports, and the other way round.
 
 ## v8.0: new Today, System Awakening, faster start
 - **System Awakening**: a first-launch setup (name, height, weight, age, goal, gym time, diet, asthma and doctor-review mode) with an animated intro. It only shows on a new install or after Start fresh. Replay it from Settings.
