@@ -18,6 +18,7 @@
 <link rel="preload" href="fonts/barlow-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/app.css">
 <link rel="stylesheet" href="css/hud.css">
+<link rel="stylesheet" href="css/arete.css">
 <script>try{if(sessionStorage.getItem('arete-splash'))document.documentElement.classList.add('nosplash');sessionStorage.setItem('arete-splash','1')}catch(e){}</script>
 </head>
 <body>
@@ -48,42 +49,19 @@
 
 <!-- ======================= TODAY ======================= -->
 <section id="v-today" class="view">
-  <section class="win hero">
-    <div class="sys" id="today-date">[ System ] · Today</div>
-    <div class="statushero" id="statushero" style="margin-top:12px"></div>
-    <div class="nextup" id="nextup"></div>
-    <div class="xprow"><div class="xp"><i id="xpbar"></i></div><span id="xptext" class="cue"></span></div>
-  </section>
-
-  <section class="win" id="mentor"></section>
-  <section class="win" id="waternudge" hidden></section>
+  <section class="win statuswin" id="statuswin" aria-label="Status window"></section>
+  <section class="win gatewin" id="gate" aria-label="Today's Gate"></section>
   <section class="win" id="breath"></section>
-
-  <section class="win water">
-    <div class="waterhead"><div><span class="k">Water</span><div class="v"><b id="water-now">0</b><small id="water-goal">/ 3.0 L</small></div></div>
-      <div class="glass" aria-hidden="true"><i id="water-fill"></i></div></div>
-    <div class="t-actions left">
-      <button type="button" class="primary" data-water="250">+ 250 ml</button>
-      <button type="button" class="ghost" data-water="500">+ 500 ml</button>
-      <button type="button" class="ghost" data-water="-250" aria-label="Remove 250 ml">− 250</button>
-    </div>
-  </section>
-
-  <section class="win">
-    <h3 class="sub">Body quests</h3>
-    <div class="quests" id="quests"></div>
-  </section>
+  <section class="win quickwin" id="quick" aria-label="Water and protein"></section>
+  <section class="win" id="daily" aria-label="Daily quests"></section>
+  <section class="win" id="mentor"></section>
   <section class="win mindwin" id="mission-today"></section>
-
-  <section class="win" id="mini-dash"></section>
-
-  <section class="win" id="today-workout"></section>
-
-  <section class="win">
-    <div class="diethead"><h3 class="sub">Today's timeline</h3><span class="cue" id="tl-note"></span></div>
+  <details class="win fold" id="tl-fold">
+    <summary><span class="fold-h"><b>Day plan</b><span class="cue" id="tl-sum"></span></span></summary>
+    <p class="cue" id="tl-note"></p>
     <ol class="timeline" id="timeline"></ol>
     <div class="rulesbox" id="diet-rules"></div>
-  </section>
+  </details>
 </section>
 
 <!-- ======================= PLAN ======================= -->
@@ -362,6 +340,8 @@
     <div class="sys">[ System ] · Hunter profile</div>
     <h2 class="vh">Settings</h2>
     <div class="formgrid">
+      <label for="s-name">Name<input id="s-name" maxlength="24" autocomplete="given-name" placeholder="Your name"></label>
+      <label for="s-goal">Main goal<select id="s-goal"><option value="cut">Lose fat, get sharp cuts</option><option value="strength">Get stronger</option><option value="both">Both</option></select><span class="cue">Shown on your status window. The training plan stays the same.</span></label>
       <label for="s-age">Age (years)<input id="s-age" type="number" min="15" max="90" step="1" inputmode="numeric" placeholder="e.g. 34"><span class="cue">Needed to calculate your calorie target.</span></label>
       <label for="s-wt">Body weight (kg)<input id="s-wt" type="number" min="35" max="200" step="0.1" inputmode="decimal"><span class="cue">Sets protein, water and strength targets.</span></label>
       <label for="s-ht">Height (cm)<input id="s-ht" type="number" min="120" max="220" step="1" inputmode="numeric"><span class="cue">Used for waist ÷ height, the best belly-fat measure.</span></label>
@@ -373,6 +353,7 @@
       <label class="check" for="s-asthma"><input id="s-asthma" type="checkbox"> I have asthma (adds a daily breathing check and safer training cues)</label>
       <label class="check" for="s-supp"><input id="s-supp" type="checkbox"> Remind me about ashwagandha and magnesium</label>
     </div>
+    <div class="t-actions left" style="margin-top:12px"><button type="button" class="ghost" id="s-awaken">Replay System Awakening</button></div>
   </section>
 
   <section class="win">
@@ -431,7 +412,7 @@
     </ul>
     <button type="button" id="reset" class="danger" style="margin-top:12px">Erase all progress</button>
   </section>
-  <p class="cue center">ARETE · Level up in real life · v7.1 · works offline once installed</p>
+  <p class="cue center">ARETE · Level up in real life · v8.0 · works offline once installed</p>
 </section>
 </div>
 
@@ -450,7 +431,7 @@
   </div>
 </dialog>
 
-<div id="rankup" class="rankup" hidden><div><div class="sys">[ System ] · Rank up</div><b id="rankup-r">D</b><p id="rankup-t">You are now a D-Rank Hunter.</p><button type="button" class="primary" id="rankup-ok">Arise</button></div></div>
+<div id="rankup" class="rankup" hidden><div><div class="sys">[ System ] · Rank up</div><b id="rankup-r">D</b><p id="rankup-t">You are now a D-Rank Hunter.</p><button type="button" class="primary" id="rankup-ok">Continue</button></div></div>
 
 <nav class="tabbar" aria-label="App sections">
   <button type="button" id="tab-today"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Today</button>
@@ -462,17 +443,18 @@
   <button type="button" id="tab-status"><svg viewBox="0 0 24 24"><path d="M4 18l5-6 4 3 7-9"/></svg>Stats</button>
 </nav>
 
-<script src="js/hud.js"></script>
-<script src="js/figures.js"></script>
-<script src="js/exercises.js"></script>
-<script src="js/program.js"></script>
-<script src="js/diet.js"></script>
-<script src="js/foods_mh.js"></script>
-<script src="js/foods_indb.js"></script>
-<script src="js/foods.js"></script>
-<script src="js/mind.js"></script>
-<script src="js/wealth.js"></script>
-<script src="js/mission.js"></script>
-<script src="js/app.js"></script>
+<!-- Deferred: the page paints first, scripts run in order after parsing.
+     js/foods_indb.js (108 KB) is loaded later by app.js (Food search / idle). -->
+<script defer src="js/hud.js"></script>
+<script defer src="js/figures.js"></script>
+<script defer src="js/exercises.js"></script>
+<script defer src="js/program.js"></script>
+<script defer src="js/diet.js"></script>
+<script defer src="js/foods_mh.js"></script>
+<script defer src="js/foods.js"></script>
+<script defer src="js/mind.js"></script>
+<script defer src="js/wealth.js"></script>
+<script defer src="js/mission.js"></script>
+<script defer src="js/app.js"></script>
 </body>
 </html>

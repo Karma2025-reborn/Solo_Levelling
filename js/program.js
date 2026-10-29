@@ -11,17 +11,17 @@ const REST={t:'Rest',rest:true,blocks:[]};
 
 const STAGES=[
  {rank:'E',to:'D',start:1,end:12,name:'E-Rank · Awakening',goal:'Learn the movements, walk daily, fix food, lose the first belly fat.',runKm:2},
- {rank:'D',to:'C',start:13,end:24,name:'D-Rank · Hunter Training',goal:'Barbell strength: 5×5 on the big lifts, first unassisted pull-up, steady running.',runKm:3},
- {rank:'C',to:'B',start:25,end:40,name:'C-Rank · Gate Raids',goal:'Push / pull / legs split. Build the V-taper: shoulders, lats, upper chest.',runKm:5},
- {rank:'B',to:'A',start:41,end:56,name:'B-Rank · Shadow Extraction',goal:'Cut phase. Keep the strength, strip the fat, reveal the abs.',runKm:5},
- {rank:'A',to:'S',start:57,end:72,name:'A-Rank · Monarch Ascension',goal:'Power and athleticism. Full Daily Quest: 100 / 100 / 100 / 10 km.',runKm:10}
+ {rank:'D',to:'C',start:13,end:24,name:'D-Rank · The Forge',goal:'Barbell strength: 5×5 on the big lifts, first unassisted pull-up, steady running.',runKm:3},
+ {rank:'C',to:'B',start:25,end:40,name:'C-Rank · Proving Ground',goal:'Push / pull / legs split. Build the V-taper: shoulders, lats, upper chest.',runKm:5},
+ {rank:'B',to:'A',start:41,end:56,name:'B-Rank · Refinement',goal:'Cut phase. Keep the strength, strip the fat, reveal the abs.',runKm:5},
+ {rank:'A',to:'S',start:57,end:72,name:'A-Rank · Ascent',goal:'Power and athleticism. Century day: 100 push-ups, 100 sit-ups, 100 squats + a 10 km run.',runKm:10}
 ];
 const TOTAL=72;
-function stageOf(w){return STAGES.find(s=>w>=s.start&&w<=s.end)||{rank:'S',to:null,start:73,end:9999,name:'S-Rank · Shadow Monarch',goal:'Maintain. Repeat the A-Rank cycle with your new numbers.',runKm:10}}
+function stageOf(w){return STAGES.find(s=>w>=s.start&&w<=s.end)||{rank:'S',to:null,start:73,end:9999,name:'S-Rank · Apex',goal:'Maintain. Repeat the A-Rank cycle with your new numbers.',runKm:10}}
 
 /* sub-phases inside E */
 function ePhase(w){return w<=4?0:w<=8?1:2}
-const EPHASES=['Awakening (weeks 1–4)','Daily Quest (weeks 5–8)','Dungeon (weeks 9–12)'];
+const EPHASES=['Awakening (weeks 1–4)','Daily Quest (weeks 5–8)','Circuit (weeks 9–12)'];
 
 function stepsFor(w){if(w<=4)return [6000,7000,8000,8000][w-1];if(w<=8)return 9000;if(w<=24)return 10000;if(w<=56)return 12000;return 10000}
 
@@ -59,7 +59,7 @@ function eProgram(w,d){
   const UV={t:'Upper Volume',blocks:[WARM,blk('strength','Strength',45,[['incline','3 × 12'],['closepull','3 × 12'],['dbrow','3 × 12 each'],['facepull','3 × 15'],['lateral','3 × 15'],['hammer','3 × 12'],['ohext','3 × 12']],'60–75 s rest'),blk('cardio','Finisher',10,[['pushup','3 × max, good form']]),blk('core','Abs',5,[['russian','3 × 20']]),STRETCH]};
   const LC={t:'Lower + Conditioning',blocks:[WARM,blk('strength','Strength',35,[['goblet','3 × 12'],['stepup','3 × 10 each leg'],['legcurl','3 × 12'],['bridge','3 × 15']],'75 s rest'),blk('cardio','Conditioning',20,[['kbswing','6 × 15 · rest 45 s'],['jogint','8 min · 2 min jog / 1 min walk']]),blk('core','Abs',5,[['legraise','3 × 12'],['bicycle','2 × 20']]),STRETCH]};
   const C={t:'Intervals + Core',blocks:[{kind:'warm',label:'Warm-up',min:10,text:'Easy walk, then 2 min slow jog.'},blk('cardio','Intervals',30,[['jogint','30 min · 2 min jog / 1 min walk']]),blk('core','Core',20,[['plank','3 × 45 s'],['russian','3 × 20'],['deadbug','3 × 10 each'],['hangknee','2 × 10']]),MOB]};
-  const D={t:'Dungeon Circuit',blocks:[WARM,blk('strength','Circuit',30,[['kbswing','15 reps'],['pushup','10 reps'],['goblet','12 reps'],['dbrow','10 each arm'],['plank','40 s']],`${w>=11?5:4} rounds · 90 s rest between rounds`),blk('cardio','Walk',30,[['walk','30 min brisk']]),STRETCH]};
+  const D={t:'Power Circuit',blocks:[WARM,blk('strength','Circuit',30,[['kbswing','15 reps'],['pushup','10 reps'],['goblet','12 reps'],['dbrow','10 each arm'],['plank','40 s']],`${w>=11?5:4} rounds · 90 s rest between rounds`),blk('cardio','Walk',30,[['walk','30 min brisk']]),STRETCH]};
   return [UH,LH,C,UV,LC,D,REST][d];
 }
 
@@ -142,7 +142,7 @@ function criteria72(rank,bw,ht,base){
    C:[['push','Push-ups, one set','reps',25,'>='],['pull','Pull-ups (bodyweight)','reps',1,'>='],['plank','Plank hold','s',90,'>='],['run','3 km run','min',20,'<='],['squat5','Squat × 5','kg',r(bw*0.75),'>='],['bench5','Bench press × 5','kg',r(bw*0.6),'>=']],
    B:[['push','Push-ups, one set','reps',40,'>='],['pull','Pull-ups','reps',5,'>='],['dips','Dips','reps',10,'>='],['run','5 km run','min',32,'<='],['squat5','Squat × 5','kg',r(bw*1.0),'>='],['bench5','Bench press × 5','kg',r(bw*0.8),'>='],['dead5','Deadlift × 5','kg',r(bw*1.25),'>=']],
    A:[['push','Push-ups, one set','reps',50,'>='],['pull','Pull-ups','reps',10,'>='],['dips','Dips','reps',15,'>='],['run','5 km run','min',28,'<='],['squat5','Squat × 5','kg',r(bw*1.25),'>='],['bench5','Bench press × 5','kg',r(bw*1.0),'>='],['dead5','Deadlift × 5','kg',r(bw*1.5),'>='],['whtr','Waist ÷ height','ratio',0.48,'<=']],
-   S:[['push','Push-ups, one set','reps',60,'>='],['pull','Pull-ups','reps',15,'>='],['dips','Dips','reps',25,'>='],['run','10 km run','min',60,'<='],['squat5','Squat × 5','kg',r(bw*1.5),'>='],['bench5','Bench press × 5','kg',r(bw*1.25),'>='],['dead5','Deadlift × 5','kg',r(bw*2.0),'>='],['whtr','Waist ÷ height','ratio',0.45,'<='],['quest','Full Daily Quest (100/100/100/10 km) in one day','done',1,'>=']]
+   S:[['push','Push-ups, one set','reps',60,'>='],['pull','Pull-ups','reps',15,'>='],['dips','Dips','reps',25,'>='],['run','10 km run','min',60,'<='],['squat5','Squat × 5','kg',r(bw*1.5),'>='],['bench5','Bench press × 5','kg',r(bw*1.25),'>='],['dead5','Deadlift × 5','kg',r(bw*2.0),'>='],['whtr','Waist ÷ height','ratio',0.45,'<='],['quest','Century day (100 push-ups, 100 sit-ups, 100 squats + 10 km) in one day','done',1,'>=']]
   };
   return (C[rank]||[]).map(([k,l,u,t,cmp])=>({k,l,u,t,cmp}));
 }
@@ -154,12 +154,12 @@ function criteria72(rank,bw,ht,base){
    ===================================================================== */
 const FAST=[
  {rank:'E',to:'D',start:1,end:8,name:'E-Rank · Awakening',goal:'Year-end sprint: one muscle a day, abs daily, legs Saturday. 1,900 kcal, 140 g protein, 3.5 L water.',runKm:2},
- {rank:'D',to:'C',start:9,end:16,name:'D-Rank · Hunter Training',goal:'Finish the sprint, then barbell lifts join (week 11). Add weight every week in the 8–12 range.',runKm:2},
- {rank:'C',to:'B',start:17,end:26,name:'C-Rank · Gate Raids',goal:'Cut to sharp: barbell lifts join the split, 25 min incline walks. Visible abs by week 26.',runKm:2},
- {rank:'B',to:'A',start:27,end:35,name:'B-Rank · Shadow Extraction',goal:'Build & sharpen: heavier lifts, about 250 kcal deficit. Deeper cuts at about 8–10% body fat.',runKm:2},
- {rank:'A',to:'S',start:36,end:43,name:'A-Rank · Monarch Ascension',goal:'Peak strength and conditioning. S-Rank test at week 43 (10 months).',runKm:2}
+ {rank:'D',to:'C',start:9,end:16,name:'D-Rank · The Forge',goal:'Finish the sprint, then barbell lifts join (week 11). Add weight every week in the 8–12 range.',runKm:2},
+ {rank:'C',to:'B',start:17,end:26,name:'C-Rank · Proving Ground',goal:'Cut to sharp: barbell lifts join the split, 25 min incline walks. Visible abs by week 26.',runKm:2},
+ {rank:'B',to:'A',start:27,end:35,name:'B-Rank · Refinement',goal:'Build & sharpen: heavier lifts, about 250 kcal deficit. Deeper cuts at about 8–10% body fat.',runKm:2},
+ {rank:'A',to:'S',start:36,end:43,name:'A-Rank · Ascent',goal:'Peak strength and conditioning. S-Rank test at week 43 (10 months).',runKm:2}
 ];
-const S_FAST={rank:'S',to:null,start:44,end:9999,name:'S-Rank · Shadow Monarch',goal:'Maintain the look and keep raising your numbers. Repeat the A-Rank cycle.',runKm:2};
+const S_FAST={rank:'S',to:null,start:44,end:9999,name:'S-Rank · Apex',goal:'Maintain the look and keep raising your numbers. Repeat the A-Rank cycle.',runKm:2};
 function fastStage(w){return FAST.find(s=>w>=s.start&&w<=s.end)||S_FAST}
 function origWeek(w){const f=fastStage(w);if(f.rank==='S')return 73+((w-44)%16+16)%16;const o=STAGES[FAST.indexOf(f)];
   return o.start+Math.round((w-f.start)/(f.end-f.start)*(o.end-o.start))}

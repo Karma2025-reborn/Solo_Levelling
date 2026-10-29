@@ -1,16 +1,29 @@
-# ARETE v7.1 · Level up in real life
+# ARETE v8.0 · Level up in real life
 
 *Arete* is Greek for excellence. ARETE (formerly Hunter System) is an E → S rank transformation app that installs on your phone and works offline. Your data never leaves the phone.
 
 | Tab | What it does |
 |---|---|
-| **Today** | The next thing to do, a water tracker, daily quests (some tick themselves), today's workout, and a full timeline from wake-up to sleep with every meal, water glass and supplement |
+| **Today** | Status window (rank, level, XP, streak), today's Gate (workout), breathing check, water + protein quick-add, daily quests (some tick themselves), mentor, Main quest, and the folded day plan from wake-up to sleep |
 | **Plan** | All 72 weeks across ranks E → D → C → B → A → S. Every exercise has an animated figure. Tap the figure or **How to** for step-by-step instructions, common mistakes, breathing, easier/harder options and your history. Tap **Log sets** to record kg × reps; last session's numbers show in grey so you know what to beat. **Finish workout** ticks the quest and gives 50 XP |
 | **Food** | Type what you actually ate ("3 roti, 1 bowl dal, 2 chai with sugar") or search 140+ Indian foods. Shows calories, protein, carbs, fat and fibre against targets calculated from your age, height, weight and current rank, plus a System analysis of what's causing the surplus (sugar, fried food, low protein, biggest calorie sources) and a 7-day calorie chart. Add your own foods from nutrition labels |
 | **Status window** (top of Status) | Power level and six stats scored 0–100 from your real logs: **STR** (push-ups, pull-ups, lift maxes ÷ body weight, lift progress), **AGI** (run pace, burpees), **VIT** (plank, resting heart rate, workouts done), **PHY** (waist ÷ height), **FUEL** (protein, calorie target, clean days), **DIS** (daily quests). Radar chart now vs 4 weeks ago, trend arrows and 8-week sparklines. A short summary also shows on Today. Do the 15-minute **Stat check** every 2 weeks to keep it accurate |
 | **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
 | **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
 | **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
+
+## v8.0: new Today, System Awakening, faster start
+- **System Awakening**: a first-launch setup (name, height, weight, age, goal, gym time, diet, asthma and doctor-review mode) with an animated intro. It only shows on a new install or after Start fresh. Replay it from Settings.
+- **New Today screen**, about 40% shorter:
+  - **Status window**: your rank, name, level, a gold XP bar that fills when you earn XP, and a streak flame.
+  - **Today's Gate**: the workout as one card with rank, minutes, exercise count and XP reward. **Enter Gate** opens it in Body. It shows *Cleared*, *Light* (asthma yellow), *Sealed* (red) or *Rest* when that applies.
+  - **Water + protein quick-add**: water buttons, plus one-tap protein (whey, 2 eggs, paneer, soya, curd) that goes straight into your Food log.
+  - **Daily quests** with a counter and how many more you need to keep your streak. Then the mentor and your Main quest.
+  - **Day plan** (the full timeline and diet rules) is folded away; its header shows what's next.
+- **Cleaner design**: calmer windows, one type scale, every button and row at least 44 px tall.
+- **Faster start**: scripts no longer block the first paint, and the 1,014-recipe INDB food table loads a moment later (or as soon as you open Food). Lighthouse mobile: Performance 95, Accessibility 100.
+- **Original names**: stages are now E Awakening · D The Forge · C Proving Ground · B Refinement · A Ascent · S Apex. The rank-up button says *Continue*; the S-Rank challenge is the *Century day*.
+- Settings has **Name** and **Main goal**. The goal is shown on your status window; the training plan, 1,900 kcal and 140 g protein stay the same.
 
 ## v7.1: ARETE
 - **New name and icon**: ARETE, with an original glowing-hexagon "A" sigil (app icon, maskable icon, favicon and the app bar).

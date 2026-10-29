@@ -155,6 +155,8 @@ const R=[
 ['oiltbsp','Cooking oil','1 tbsp',15,135,0,0,15,0,'tbsp oil|tablespoon oil','']
 ];
 const FOODS={};R.forEach(([k,n,u,g,kcal,p,c,f,fi,al,tag])=>{FOODS[k]={k,n,u,g,kcal,p,c,f,fi,al:al.split('|'),tag}});
-[...(window.FOODS_MH||[]),...(window.FOODS_INDB||[])].forEach(([k,n,u,g,kcal,p,c,f,fi,al,tag])=>{if(!FOODS[k])FOODS[k]={k,n,u,g,kcal,p,c,f,fi,al:(al||n.toLowerCase()).split('|').filter(Boolean),tag,src:k[0]==='i'?'INDB':k[0]==='m'&&k[1]==='_'?'MH':''}});
-window.FOODS=FOODS;
+// Extra tables (Maharashtrian now, INDB later when app.js lazy-loads it) merge into the same object.
+function addFoods(rows){(rows||[]).forEach(([k,n,u,g,kcal,p,c,f,fi,al,tag])=>{if(!FOODS[k])FOODS[k]={k,n,u,g,kcal,p,c,f,fi,al:(al||n.toLowerCase()).split('|').filter(Boolean),tag,src:k[0]==='i'?'INDB':k[0]==='m'&&k[1]==='_'?'MH':''}})}
+addFoods(window.FOODS_MH);addFoods(window.FOODS_INDB);
+window.FOODS=FOODS;window.addFoods=addFoods;
 })();

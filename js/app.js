@@ -104,8 +104,6 @@ function header(){
   const xp=xpTotal(),lv=Math.floor(xp/1000)+1;
   $('lv').textContent=lv;
   const seen=S.get('lvseen',0);if(!seen)S.set('lvseen',lv);else if(lv>seen){S.set('lvseen',lv);if(window.HUD)HUD.levelUp('[ SYSTEM ]','LEVEL UP',`You reached level ${lv}. Keep going, Hunter.`)}
-  $('xpbar').style.width=((xp%1000)/10)+'%';
-  $('xptext').textContent=`${xp.toLocaleString('en-IN')} XP · ${1000-xp%1000} XP to level ${lv+1} · ${streak()}-day streak`;
 }
 
 /* =================================================================
@@ -113,65 +111,127 @@ function header(){
    ================================================================= */
 function renderToday(){
   const now=new Date(),ds=ymd(now),p=posOf(now),sess=Plan.program(p.w,p.d),rec=getDay(ds),st=Plan.stageOf(p.w);
-  $('today-date').textContent=`[ System ] · ${DFULL[p.d]}, ${now.getDate()} ${now.toLocaleString('en-IN',{month:'short'})} · Week ${p.w}`;
   const tl=Diet.timeline(prof.gym,p.d,prof.diet,!!sess.rest,waterL(),prof.supps);
-  // next up
   const hm=now.getHours()*60+now.getMinutes();
   const nxt=tl.find(t=>{const [h,m]=t.time.split(':').map(Number);return h*60+m>=hm&&!rec.tl[t.id]})||null;
-  $('nextup').innerHTML=nxt?`<span class="k">Next up · ${nxt.time}</span><b>${esc(nxt.title)}</b><span class="cue">${esc(nxt.detail)}${nxt.ml?` · ${nxt.ml} ml water`:''}</span>`
-    :`<span class="k">Today</span><b>${dayScore(ds)>=0.8?'Daily quest complete':'Wind down and sleep'}</b><span class="cue">Lights out by 10:30 pm.</span>`;
-  // status hero
   const ql=questsFor(ds),qd=ql.filter(q=>q.done).length,ft=totals(ds),T=targets();
-  const hs=$('statushero');if(hs&&window.HUD)hs.innerHTML=HUD.ring(ql.length?qd/ql.length:0,'QUESTS',`${qd}/${ql.length}`)+`<div class="hstats">
-    <div class="hstat" style="--c:var(--cyan)"><span class="k">Water</span><b>${(rec.water/1000).toFixed(1)}<small>/ ${waterL().toFixed(1)} L</small></b></div>
-    <div class="hstat" style="--c:var(--ok)"><span class="k">Protein</span><b>${Math.round(ft.p)}<small>/ ${T.p} g</small></b></div>
-    <div class="hstat" style="--c:var(--gold)"><span class="k">Calories</span><b>${Math.round(ft.kcal)}<small>/ ${T.kcal}</small></b></div>
-    <div class="hstat" style="--c:var(--violet)"><span class="k">Streak</span><b>${streak()}<small> days</small></b></div></div>`;
+  renderStatusWin(p,st);
+  renderGate(p,sess,rec,st);
+  renderBreath();
+  renderQuick(rec,ft,T);
+  // daily quests
+  $('daily').innerHTML=`<div class="wh"><h3 class="sub">Daily quests</h3><span class="qcount${qd===ql.length?' all':''}"><b>${qd}</b>/${ql.length}</span></div>
+   <p class="cue">+15 XP each · resets at midnight${dayScore(ds)>=0.8?' · <b class="okc">streak secured today</b>':` · ${Math.max(0,Math.ceil(ql.length*0.8)-qd)} more keeps your streak`}</p>
+   <div class="quests">${ql.map(q=>`<label class="q${q.auto?' auto':''}${q.id===justTick?' just':''}"><input type="checkbox" data-quest="${q.id}" ${q.done?'checked':''} ${q.auto?'disabled':''}><span>${esc(q.t)}<small>${esc(q.s)}${q.auto?' · ticks itself':''}</small></span></label>`).join('')}</div>`;
+  // mentor
   if(window.HUD){const h=now.getHours();let order='';
-    if(!sess.rest&&!rec.workout&&h<11)order=`Complete ${sess.t} today.`;
+    if(!sess.rest&&!rec.workout&&h<11)order=`Clear today's Gate: ${sess.t}.`;
     else if(rec.water<waterL()*1000*Math.min(1,Math.max(0,(h-6)/14)))order='Drink 2 glasses of water now.';
     else if(ft.p<T.p*0.6&&h>=14)order=`Protein is at ${Math.round(ft.p)} g. Add whey, eggs, paneer or soya.`;
-    else if(!sess.rest&&!rec.workout)order=`${sess.t} is still waiting.`;
+    else if(!sess.rest&&!rec.workout)order=`The ${sess.t} Gate is still open.`;
     else order='Sleep by 10:30. Growth happens tonight.';
     HUD.renderMentor($('mentor'),{date:ds,sessT:sess.t,rest:!!sess.rest,order})}
-  // water
-  const goal=waterL()*1000;$('water-now').textContent=(rec.water/1000).toFixed(2);$('water-goal').textContent=` / ${waterL().toFixed(1)} L`;
-  $('water-fill').style.height=Math.min(100,rec.water/goal*100)+'%';
-  // quests
-  $('quests').innerHTML=questsFor(ds).map(q=>`<label class="q${q.auto?' auto':''}"><input type="checkbox" data-quest="${q.id}" ${q.done?'checked':''} ${q.auto?'disabled':''}><span>${esc(q.t)}<small>${esc(q.s)}${q.auto?' · ticks itself':''}</small></span></label>`).join('');
-  // workout card
-  const total=sess.blocks.reduce((a,b)=>a+b.min,0);
-  $('today-workout').innerHTML=sess.rest?`<h3 class="sub">Workout</h3><b class="big-t">Rest day</b><p class="cue">Recovery is when muscle is built. Easy walk for your steps, eat your protein, sleep early.</p>`
-    :`<h3 class="sub">Today's workout</h3><div class="tw"><div><b class="big-t">${esc(sess.t)}</b><span class="cue">${total} min · ${st.name}${sess.note?' · '+esc(sess.note):''}</span></div>
-      ${rec.workout?'<span class="pill ok">Done</span>':`<button type="button" class="primary" id="go-workout">Start workout</button>`}</div>
-      <div class="bar">${sess.blocks.map(b=>`<i style="flex:${b.min};background:${COL[b.kind]}"></i>`).join('')}</div>`;
-  const gw=$('go-workout');if(gw)gw.onclick=()=>{selW=p.w;selD=p.d;showView('plan')};
-  // timeline
-  $('tl-note').textContent=prof.gym==='morning'?'Morning gym schedule':'Evening gym schedule';
+  renderMissionToday();
+  // day plan (folded)
+  const fold=$('tl-fold');if(fold&&!fold.dataset.init){fold.dataset.init=1;fold.open=S.get('tlOpen',false);fold.addEventListener('toggle',()=>S.set('tlOpen',fold.open))}
+  $('tl-sum').textContent=nxt?`Next ${nxt.time} · ${nxt.title}`:'All done for today';
+  $('tl-note').textContent=`${prof.gym==='morning'?'Morning':'Evening'} gym schedule · tick items as you go`;
   $('timeline').innerHTML=tl.map(t=>{const done=!!rec.tl[t.id];const [h,m]=t.time.split(':').map(Number);const past=h*60+m<hm;
     return `<li class="tl t-${t.type}${done?' done':''}${!done&&past?' late':''}"><label><input type="checkbox" data-tl="${t.id}" data-ml="${t.ml}" ${done?'checked':''}>
       <time>${t.time}</time><span class="tl-b"><b>${esc(t.title)}</b>${t.detail?`<span>${esc(t.detail)}</span>`:''}${t.note?`<small>${esc(t.note)}</small>`:''}</span>${t.ml?`<em>${t.ml} ml</em>`:''}</label></li>`}).join('');
   $('diet-rules').innerHTML=`<h3 class="sub">${st.rank}-Rank diet rules</h3><ul class="plain">${Diet.rulesFor(st.rank,Plan.origWeek(p.w)).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
    <p class="cue">Portions: 1 phulka is palm-sized without ghee. 1 cup cooked rice is a fist. 1 bowl dal is about 200 ml. 2–3 tsp oil per person per day in total.</p>`;
-  renderMiniDash();
-  renderMissionToday();
-  renderBreath();
   renderCut();
-  renderWaterNudge();
   header();
 }
+
+/* ---------- Today: status window (rank, level, XP, streak) ---------- */
+let xpShown=null,justTick=null;
+const FLAME=`<svg viewBox="0 0 32 40" aria-hidden="true"><defs><linearGradient id="fl-g" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FF5470"/><stop offset=".55" stop-color="#FF8D52"/><stop offset="1" stop-color="#FFC857"/></linearGradient></defs>
+  <path class="fl-o" d="M16 1c2 7 11 11 11 22a11 11 0 0 1-22 0c0-6 3-9 5-12 1 4 3 5 4 5-1-6 0-11 2-15z" fill="url(#fl-g)"/><path class="fl-i" d="M16 20c1 3 5 5 5 10a5 5 0 0 1-10 0c0-3 2-5 3-7 0 2 1 3 2 3-.5-2 0-4 0-6z" fill="#FFF3C4"/></svg>`;
+function renderStatusWin(p,st){
+  const xp=xpTotal(),lv=Math.floor(xp/1000)+1,into=xp%1000,sk=streak(),r=earnedRank(),now=new Date();
+  const name=prof.name?esc(prof.name):'Hunter';
+  const el=$('statuswin');
+  el.innerHTML=`<div class="sw-top"><span class="k">${DFULL[p.d]}, ${now.getDate()} ${now.toLocaleString('en-IN',{month:'short'})} · Week ${p.w} · ${esc(st.name.split(' · ')[1]||st.name)}</span></div>
+   <div class="sw">
+    <div class="rank xl"><span>${r}</span></div>
+    <div class="sw-main"><b class="sw-name">${name}</b><span class="sw-title">${r}-Rank Hunter${prof.goal?` · ${esc(GOALS[prof.goal]||'')}`:''}</span>
+     <div class="lvrow"><span class="lvtag">LV <b>${lv}</b></span><span class="cue"><b class="goldc">${into.toLocaleString('en-IN')}</b> / 1,000 XP</span></div></div>
+    <div class="flame${sk?'':' off'}" title="Streak"><span class="fl-ic">${FLAME}</span><b>${sk}</b><span>day${sk===1?'':'s'}</span></div>
+   </div>
+   <div class="xpbar" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="${into}"><i></i></div>
+   <p class="cue sw-foot">${(1000-into).toLocaleString('en-IN')} XP to level ${lv+1} · ${xp.toLocaleString('en-IN')} XP total</p>`;
+  const bar=el.querySelector('.xpbar i'),to=into/10;
+  const from=xpShown==null?0:(xpShown.lv===lv?xpShown.pct:0);
+  bar.style.width=from+'%';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{bar.style.width=to+'%'}));
+  if(xpShown&&xp>xpShown.xp){bar.parentElement.classList.add('gain');setTimeout(()=>bar.parentElement.classList.remove('gain'),900)}
+  xpShown={xp,lv,pct:to};
+}
+
+/* ---------- Today: Gate card ---------- */
+const GATE_SVG=`<svg viewBox="0 0 120 120" aria-hidden="true" class="gate-svg"><defs>
+  <radialGradient id="gt-c" cx=".5" cy=".55" r=".5"><stop offset="0" stop-color="#E8FBFF" stop-opacity=".95"/><stop offset=".35" stop-color="#4FD8FF" stop-opacity=".7"/><stop offset=".75" stop-color="#8B5CFF" stop-opacity=".35"/><stop offset="1" stop-color="#8B5CFF" stop-opacity="0"/></radialGradient>
+  <linearGradient id="gt-e" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4FD8FF"/><stop offset="1" stop-color="#8B5CFF"/></linearGradient></defs>
+  <ellipse cx="60" cy="64" rx="44" ry="50" fill="url(#gt-c)" class="gt-core"/>
+  <g class="gt-r1"><polygon points="60,6 108,34 108,90 60,118 12,90 12,34" fill="none" stroke="url(#gt-e)" stroke-width="2.5"/></g>
+  <g class="gt-r2"><polygon points="60,20 96,41 96,83 60,104 24,83 24,41" fill="none" stroke="#4FD8FF" stroke-width="1" stroke-dasharray="3 5" opacity=".8"/></g>
+  <path d="M44 92V58a16 16 0 0 1 32 0v34" fill="none" stroke="#fff" stroke-width="2" opacity=".85"/></svg>`;
+function gateXP(sess){return sess.rest?0:65}
+function renderGate(p,sess,rec,st){
+  const el=$('gate');const br=prof.asthma?rec.breath:null;
+  const strength=sess.blocks.filter(b=>b.kind==='strength'||b.kind==='core').reduce((a,b)=>a+(b.items||[]).length,0);
+  const total=sess.blocks.reduce((a,b)=>a+b.min,0);
+  let state='open',title=sess.t,line='',btn='';
+  if(sess.rest){state='rest';title='Rest + long walk';line='No Gate today. Muscle is built while you recover: easy walk for your steps, protein, early sleep.'}
+  else if(rec.workout){state='clear';line='Gate cleared. Log any extra sets in Body.'}
+  else if(br==='r'){state='sealed';line='Breathing check is red: the Gate stays sealed today. Rest and follow your asthma plan.'}
+  else if(br==='y'){state='light';line='Yellow zone: enter the light version only. 30 min easy walk + mobility, no heavy sets.'}
+  btn=state==='open'||state==='light'?`<button type="button" class="primary big gate-go" id="go-workout">Enter Gate</button>`:state==='clear'?`<button type="button" class="ghost" id="go-workout">View workout</button>`:'';
+  el.dataset.state=state;
+  el.innerHTML=`<div class="gate-art">${GATE_SVG}</div>
+   <div class="gate-b"><span class="k">Today's Gate · ${st.rank}-Rank${state==='clear'?' · <b class="okc">Cleared</b>':''}</span>
+    <h2 class="gate-t">${esc(title)}</h2>
+    ${sess.rest?'':`<div class="gate-meta"><span>${total} min</span><span>${strength} exercises</span><span class="gxp">+${gateXP(sess)} XP</span></div>
+    <div class="bar">${sess.blocks.map(b=>`<i style="flex:${b.min};background:${COL[b.kind]}"></i>`).join('')}</div>`}
+    ${line?`<p class="cue gate-line">${line}</p>`:''}${sess.note?`<p class="cue">${esc(sess.note)}</p>`:''}</div>${btn}`;
+  const gw=$('go-workout');if(gw)gw.onclick=()=>{selW=p.w;selD=p.d;showView('plan')};
+}
+
+/* ---------- Today: water + protein quick-add ---------- */
+const PQUICK=[['whey',1,'Whey','1 scoop',0],['egg',2,'2 eggs','',1],['paneer',1,'Paneer','100 g',0],['soya',1,'Soya','50 g',0],['curd',1,'Curd','1 bowl',0]];
+function renderQuick(rec,ft,T){
+  const goal=waterL()*1000,w=rec.water||0,h=new Date().getHours();
+  const need=h>=20&&w<3000?3000:h>=16&&w<2000?2000:h>=12&&w<1000?1000:0;
+  const pq=PQUICK.filter(x=>!x[4]||prof.diet>=x[4]).map(([k,q,l,u])=>{const f=food(k);return f?`<button type="button" class="chipbtn" data-pq="${k}" data-q="${q}"><b>+${Math.round(f.p*q)} g</b><span>${l}${u?' · '+u:''}</span></button>`:''}).join('');
+  $('quick').innerHTML=`<div class="qk">
+    <div class="qk-h"><span class="k">Water</span><b class="qk-v">${(w/1000).toFixed(2)}<small> / ${waterL().toFixed(1)} L</small></b></div>
+    <div class="mtrack lg"><i style="width:${Math.min(100,w/goal*100)}%;background:linear-gradient(90deg,#3D7BFF,var(--cyan))"></i></div>
+    ${need?`<p class="cue warnc">Behind: you should be at ${need/1000} L by now. Drink 2 glasses.</p>`:''}
+    <div class="qk-btns"><button type="button" class="primary" data-water="250">+ 250 ml</button><button type="button" class="ghost" data-water="500">+ 500 ml</button><button type="button" class="ghost" data-water="-250" aria-label="Remove 250 ml">− 250</button></div></div>
+   <div class="qk">
+    <div class="qk-h"><span class="k">Protein</span><b class="qk-v">${Math.round(ft.p)}<small> / ${T.p} g</small></b></div>
+    <div class="mtrack lg"><i style="width:${Math.min(100,ft.p/T.p*100)}%;background:linear-gradient(90deg,#1FB57E,var(--ok))"></i></div>
+    <div class="qk-chips">${pq}</div><p class="cue">Adds to your Food log for this meal.</p></div>`;
+}
+function addFoodOn(ds,k,q,m){const a=foodLog(ds);a.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),f:k,q:q||1,m:m||mealNow()});setFoodLog(ds,a)}
 document.addEventListener('change',e=>{
   const t=e.target,ds=todayStr();
-  if(t.dataset.quest){const r=getDay(ds);r.q[t.dataset.quest]=t.checked;setDay(ds,r);renderToday()}
+  if(t.dataset.quest){const r=getDay(ds);r.q[t.dataset.quest]=t.checked;setDay(ds,r);if(t.checked){buzz(15);justTick=t.dataset.quest}renderToday();justTick=null}
   if(t.dataset.tl){const r=getDay(ds);r.tl[t.dataset.tl]=t.checked;const ml=+t.dataset.ml||0;if(ml)r.water=Math.max(0,r.water+(t.checked?ml:-ml));setDay(ds,r);renderToday()}
 });
-document.querySelectorAll('[data-water]').forEach(b=>b.addEventListener('click',()=>{const ds=todayStr(),r=getDay(ds);r.water=Math.max(0,r.water+ +b.dataset.water);setDay(ds,r);renderToday()}));
+document.addEventListener('click',e=>{
+  const w=e.target.closest('[data-water]');if(w){const ds=todayStr(),r=getDay(ds);r.water=Math.max(0,r.water+ +w.dataset.water);setDay(ds,r);buzz(10);renderToday();return}
+  const pq=e.target.closest('[data-pq]');if(pq){const k=pq.dataset.pq,q=+pq.dataset.q,f=food(k);addFoodOn(todayStr(),k,q);pushRecent(k);buzz(10);toast(`Added ${q>1?q+' × ':''}${f.n} · +${Math.round(f.p*q)} g protein`);renderToday()}
+});
+function buzz(ms){try{if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
 
 /* =================================================================
    PLAN
    ================================================================= */
 let selW=1,selD=0;
-function stageList(){return [...Plan.STAGES,{rank:'S',start:44,end:47,name:'S-Rank · Shadow Monarch',goal:'Maintain. Repeat the A-Rank cycle with your new numbers.'}]}
+function stageList(){return [...Plan.STAGES,{rank:'S',start:44,end:47,name:'S-Rank · Apex',goal:'Maintain. Repeat the A-Rank cycle with your new numbers.'}]}
 function renderPlan(){
   const st=Plan.stageOf(selW),stages=stageList(),cur=posOf(new Date()).w;
   $('ranks').innerHTML=stages.map(s=>`<button type="button" data-st="${s.start}" aria-pressed="${s.rank===st.rank}"><b>${s.rank}</b><span>W${s.start}${s.rank==='S'?'+':'–'+s.end}</span></button>`).join('');
@@ -398,7 +458,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(tRun)t
 /* =================================================================
    SETTINGS
    ================================================================= */
-function fillSettings(){$('s-asthma').checked=!!prof.asthma;$('s-hold').checked=!!prof.medHold;$('s-age').value=prof.age||'';$('s-wt').value=prof.wt;$('s-ht').value=prof.ht;$('s-start').value=prof.start;$('s-diet').value=prof.diet;$('s-gym').value=prof.gym;$('s-supp').checked=!!prof.supps;renderGcal()}
+function fillSettings(){$('s-name').value=prof.name||'';$('s-goal').value=prof.goal||'cut';$('s-asthma').checked=!!prof.asthma;$('s-hold').checked=!!prof.medHold;$('s-age').value=prof.age||'';$('s-wt').value=prof.wt;$('s-ht').value=prof.ht;$('s-start').value=prof.start;$('s-diet').value=prof.diet;$('s-gym').value=prof.gym;$('s-supp').checked=!!prof.supps;renderGcal()}
 $('s-wt').onchange=()=>{const v=parseFloat($('s-wt').value);if(v>=35&&v<=200){prof.wt=v;saveProf();refresh()}};
 $('s-age').onchange=()=>{const v=parseInt($('s-age').value);if(v>=15&&v<=90){prof.age=v;saveProf();refresh()}};
 $('s-ht').onchange=()=>{const v=parseFloat($('s-ht').value);if(v>=120&&v<=220){prof.ht=v;saveProf();refresh()}};
@@ -408,6 +468,9 @@ $('s-gym').onchange=()=>{prof.gym=$('s-gym').value;saveProf();renderGcal();refre
 $('s-hold').onchange=()=>{prof.medHold=$('s-hold').checked;saveProf();toast(prof.medHold?'Doctor review mode on':'Doctor review mode off: full training unlocked');refresh()};
 $('s-asthma').onchange=()=>{prof.asthma=$('s-asthma').checked;saveProf();refresh()};
 $('s-supp').onchange=()=>{prof.supps=$('s-supp').checked;saveProf();renderGcal();refresh()};
+$('s-name').onchange=()=>{prof.name=$('s-name').value.trim().slice(0,24);saveProf();refresh()};
+$('s-goal').onchange=()=>{prof.goal=$('s-goal').value;saveProf();refresh()};
+$('s-awaken').onclick=()=>{S.del('onboarded');showAwakening()};
 
 /* ---------- reminders ---------- */
 function reminderList(){
@@ -598,7 +661,7 @@ $('food-parse').onclick=()=>{
   $('food-parse-msg').innerHTML=(found.length?`Added ${found.map(x=>`<b>${esc(food(x.f).n)}</b> ×${x.q}`).join(', ')} to ${MEALS.find(m=>m[0]===foodMeal)[1]}.`:'')+(missed.length?` <span class="miss">Couldn't recognise: ${missed.map(esc).join(', ')}. Search for it below or add it as a custom food.</span>`:'');
   if(found.length)$('food-text').value='';renderFood();refreshQuests();
 };
-$('food-q').addEventListener('input',renderFoodSearch);
+$('food-q').addEventListener('input',renderFoodSearch);$('food-q').addEventListener('focus',()=>loadINDB());
 $('food-res').addEventListener('click',e=>{const b=e.target.closest('[data-fadd]');if(!b)return;addFood(b.dataset.fadd,1,foodMeal);pushRecent(b.dataset.fadd);toast(`Added ${food(b.dataset.fadd).n}`);renderFood();refreshQuests()});
 $('food-log').addEventListener('click',e=>{
   const q=e.target.closest('[data-fq]'),x=e.target.closest('[data-fdel]');const a=foodLog(foodDate);
@@ -715,6 +778,7 @@ function renderDash(){
    <p class="cue">Each stat is scored 0–100, where 100 means S-Rank level for that measure. Trends compare today with 4 weeks ago. ▲ means improving by 3 or more points.</p>`;
 }
 function renderMiniDash(){
+  if(!$('mini-dash'))return;
   const series=statSeries(),tr=STATS.map(s=>({s,t:trendOf(series,s.k)})),meas=tr.filter(x=>x.t.now!=null),up=meas.filter(x=>x.t.delta>=3).length;
   $('mini-dash').innerHTML=`<div class="diethead"><h3 class="sub">Status window</h3><button type="button" class="link" id="open-stats">Open stats</button></div>
    <div class="minibars">${tr.map(({s,t})=>`<div class="mb"><span>${s.k}</span><div class="mtrack"><i style="width:${t.now??0}%;background:var(--cyan)"></i></div><b class="${t.delta>=3?'up':t.delta<=-3?'down':''}">${t.now??'–'}${t.delta>=3?' ▲':t.delta<=-3?' ▼':''}</b></div>`).join('')}</div>
@@ -872,7 +936,7 @@ function wealthQuests(ds){const r=getDay(ds),wq=r.wq||{};const acts=S.get('acts:
     {id:'noimpulse',t:'No impulse buying',s:'Wait 48 hours before any non-essential purchase',done:!!wq.noimpulse}]}
 let txType='out';
 function renderWealth(){
-  const M=wealthMetrics(),ri=wealthRankIdx(M),R=Wealth.RANKS,cur=ri>=R.length?{name:'S-Rank · Shadow Monarch',goal:'₹100 Cr reached. Protect it and diversify.',month:60,crit:[]}:R[ri],letter=ri>=R.length?'S':R[ri].r;
+  const M=wealthMetrics(),ri=wealthRankIdx(M),R=Wealth.RANKS,cur=ri>=R.length?{name:'S-Rank · Apex',goal:'₹100 Cr reached. Protect it and diversify.',month:60,crit:[]}:R[ri],letter=ri>=R.length?'S':R[ri].r;
   const prev=S.get('wrank','E');if(RANKS.indexOf(letter)>RANKS.indexOf(prev)){S.set('wrank',letter);showRankUp(letter,'Wealth')}
   const ms=monthsSince(wStart()),left=Math.max(1,60-ms);
   const nw=M.nw;
@@ -1363,11 +1427,94 @@ function initReset(){
 function toast(t){let el=$('toast');if(!el){el=document.createElement('div');el.id='toast';el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)}el.textContent=t;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('on'),2200)}
 
 /* =================================================================
+   GOAL + LAZY FOOD DATABASE
+   ================================================================= */
+const GOALS={cut:'Fat loss',strength:'Strength',both:'Recomp'};
+// js/foods_indb.js (1,014 INDB recipes, 108 KB) loads after first paint, or as soon as Food needs it.
+let indbP=null;
+function loadINDB(){
+  if(window.FOODS_INDB)return Promise.resolve();if(indbP)return indbP;
+  indbP=new Promise(res=>{const s=document.createElement('script');s.src='js/foods_indb.js';
+    s.onload=()=>{window.addFoods(window.FOODS_INDB);SV++;res();const v=S.get('view','today');if(v==='food')renderFood();else if(v==='today')renderToday()};
+    s.onerror=()=>{indbP=null;res()};document.head.appendChild(s)});
+  return indbP;
+}
+
+/* =================================================================
+   SYSTEM AWAKENING — first-launch onboarding
+   Shown once for a new install (or after Start fresh). Existing users with
+   logs skip it. Saves into the same profile object Settings uses.
+   ================================================================= */
+const AW_SIGIL=`<svg viewBox="0 0 100 100" class="aw-sig" aria-hidden="true"><polygon class="aw-hex" pathLength="100" points="50,5 89,27.5 89,72.5 50,95 11,72.5 11,27.5" fill="none" stroke="url(#ag-e)" stroke-width="3"/><polygon class="aw-hex2" points="50,16 79,33 79,67 50,84 21,67 21,33" fill="none" stroke="#4FD8FF" stroke-width=".8" stroke-dasharray="2 4"/><g class="aw-a"><path d="M50 22L71 75H61L50 47L39 75H29Z" fill="url(#ag-a)"/><path d="M44.9 60H55.1L57.5 66H42.5Z" fill="url(#ag-a)"/></g></svg>`;
+function needsAwakening(){
+  if(S.get('onboarded',false))return false;
+  if(allDays().length||S.get('log',[]).length||S.get('tests',[]).length){S.set('onboarded',true);return false}
+  return true;
+}
+function showAwakening(){
+  let o=$('awaken');if(o)o.remove();
+  o=document.createElement('div');o.id='awaken';o.className='awaken';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');o.setAttribute('aria-label','System awakening');
+  document.body.appendChild(o);document.body.classList.add('locked');
+  let step=0;const N=6;
+  const dots=()=>`<div class="aw-dots" aria-hidden="true">${[...Array(N)].map((_,i)=>`<i class="${i<step?'ok':i===step?'on':''}"></i>`).join('')}</div>`;
+  const opt=(name,val,cur,title,sub)=>`<label class="aw-opt"><input type="radio" name="${name}" value="${val}" ${String(cur)===String(val)?'checked':''}><span><b>${title}</b>${sub?`<small>${sub}</small>`:''}</span></label>`;
+  const nav=(next,back=true)=>`<div class="aw-nav">${back?'<button type="button" class="ghost" data-aw="back">Back</button>':''}<button type="button" class="primary big" data-aw="next">${next}</button></div>`;
+  function render(){
+    let h='';
+    if(step===0)h=`<div class="aw-intro">${AW_SIGIL}<div class="aw-scan" aria-hidden="true"></div>
+      <p class="aw-sys">[ SYSTEM ]</p><h1 class="aw-big">SYSTEM<br>AWAKENED</h1>
+      <p class="aw-lead">Your real-life level starts today. Answer five quick questions and the System builds your plan: training, food, water and quests.</p>
+      <button type="button" class="primary big" data-aw="next">Begin awakening</button><p class="cue">About one minute. Everything stays on this phone.</p></div>`;
+    if(step===1)h=`${dots()}<p class="aw-sys">Identify</p><h2 class="aw-q">What should the System call you?</h2>
+      <label class="aw-field">Name<input id="aw-name" maxlength="24" autocomplete="given-name" placeholder="Your name" value="${esc(prof.name||'')}"></label>${nav('Next',false)}`;
+    if(step===2)h=`${dots()}<p class="aw-sys">Scan body</p><h2 class="aw-q">Your measurements</h2>
+      <div class="aw-grid"><label class="aw-field">Height (cm)<input id="aw-ht" type="number" inputmode="numeric" min="120" max="220" value="${prof.ht||''}"></label>
+      <label class="aw-field">Weight (kg)<input id="aw-wt" type="number" inputmode="decimal" step="0.1" min="35" max="200" value="${prof.wt||''}"></label>
+      <label class="aw-field">Age<input id="aw-age" type="number" inputmode="numeric" min="15" max="90" value="${prof.age||''}"></label></div>
+      <p class="cue">Used for your calorie, protein and water targets.</p><p class="cue warnc" id="aw-err" role="status"></p>${nav('Next')}`;
+    if(step===3)h=`${dots()}<p class="aw-sys">Choose a path</p><h2 class="aw-q">What is your main goal?</h2>
+      <div class="aw-opts">${opt('goal','cut',prof.goal||'cut','Lose fat, get sharp cuts','Belly first, then visible abs at about 8–10% body fat')}${opt('goal','strength',prof.goal,'Get stronger','Bigger numbers on every lift')}${opt('goal','both',prof.goal,'Both','Lose fat while building muscle')}</div>${nav('Next')}`;
+    if(step===4)h=`${dots()}<p class="aw-sys">Daily rhythm</p><h2 class="aw-q">When do you train, and what do you eat?</h2>
+      <p class="k">Gym time</p><div class="aw-opts two">${opt('gym','morning',prof.gym,'Morning','6:45 am')}${opt('gym','evening',prof.gym,'Evening','5:30 pm')}</div>
+      <p class="k" style="margin-top:16px">Diet</p><div class="aw-opts">${opt('diet',0,prof.diet,'Pure veg','')}${opt('diet',1,prof.diet,'Veg + egg','')}${opt('diet',2,prof.diet,'Non-veg','')}</div>${nav('Next')}`;
+    if(step===5)h=`${dots()}<p class="aw-sys">Safety</p><h2 class="aw-q">Breathing and health</h2>
+      <label class="aw-tog"><input type="checkbox" id="aw-asthma" ${prof.asthma?'checked':''}><span><b>Asthma mode</b><small>Daily green / yellow / red breathing check, longer warm-ups, safer cues.</small></span></label>
+      <label class="aw-tog"><input type="checkbox" id="aw-hold" ${prof.medHold?'checked':''}><span><b>Waiting for a doctor's review</b><small>Swaps sprints, jumps and hard runs for steady cardio until you're cleared.</small></span></label>
+      <p class="cue">Change these any time in Settings.</p>${nav('Finish')}`;
+    if(step===6){const T=targets();h=`<div class="aw-done"><div class="rank xl aw-rank"><span>E</span></div><p class="aw-sys">Awakening complete</p>
+      <h1 class="aw-big sm">${esc(prof.name||'Hunter')}<br><span>E-Rank Hunter</span></h1>
+      <div class="aw-stats"><div><b>${T.kcal.toLocaleString('en-IN')}</b><span>kcal / day</span></div><div><b>${T.p} g</b><span>protein</span></div><div><b>${waterL().toFixed(1)} L</b><span>water</span></div></div>
+      <p class="aw-lead">One muscle a day, abs every gym day, legs on Saturday. Clear today's Gate and your daily quests to level up.</p>
+      <button type="button" class="primary big" data-aw="enter">Enter</button></div>`}
+    o.innerHTML=`<div class="aw-card" data-step="${step}">${h}</div>`;
+    const f=o.querySelector('input:not([type=radio]):not([type=checkbox]),button.primary');if(f&&step>0)setTimeout(()=>f.focus(),50);
+  }
+  function save(){
+    const v=id=>{const x=parseFloat(($(id)||{}).value);return isNaN(x)?null:x};
+    if(step===1){const n=($('aw-name').value||'').trim();if(n)prof.name=n}
+    if(step===2){const ht=v('aw-ht'),wt=v('aw-wt'),age=v('aw-age');
+      if(!(ht>=120&&ht<=220)||!(wt>=35&&wt<=200)||!(age>=15&&age<=90)){$('aw-err').textContent='Check the numbers: height 120–220 cm, weight 35–200 kg, age 15–90.';return false}
+      prof.ht=Math.round(ht);prof.wt=Math.round(wt*10)/10;prof.age=Math.round(age)}
+    const r=n=>{const x=o.querySelector(`input[name=${n}]:checked`);return x?x.value:null};
+    if(step===3)prof.goal=r('goal')||'cut';
+    if(step===4){prof.gym=r('gym')||prof.gym;const d=r('diet');if(d!=null)prof.diet=+d}
+    if(step===5){prof.asthma=$('aw-asthma').checked;prof.medHold=$('aw-hold').checked}
+    saveProf();SV++;return true;
+  }
+  o.addEventListener('click',e=>{const b=e.target.closest('[data-aw]');if(!b)return;const a=b.dataset.aw;
+    if(a==='back'){step=Math.max(0,step-1);render();return}
+    if(a==='next'){if(step>0&&save()===false)return;step++;render();buzz(10);if(step===6)buzz([30,40,90]);return}
+    if(a==='enter'){S.set('onboarded',true);o.classList.add('out');document.body.classList.remove('locked');setTimeout(()=>o.remove(),350);fillSettings();refresh()}});
+  o.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();const b=o.querySelector('[data-aw=next]');if(b)b.click()}});
+  render();
+}
+
+/* =================================================================
    NAV + BOOT
    ================================================================= */
 const VIEWS=['today','plan','food','mission','mind','wealth','status','timer','settings'];
 function showView(v){VIEWS.forEach(x=>{$('v-'+x).hidden=x!==v;const tb=$('tab-'+x);if(tb)tb.setAttribute('aria-current',x===v||(v==='timer'&&x==='plan')?'page':'false')});S.set('view',v);window.scrollTo(0,0);
-  if(v==='today')renderToday();if(v==='plan')renderPlan();if(v==='food'){foodDate=todayStr();foodMeal=mealNow();renderFood()}if(v==='mind')renderMind();if(v==='wealth')renderWealth();if(v==='mission')renderMission();if(v==='plan')renderBodyCards();if(v==='status')renderStatus();}
+  if(v==='today')renderToday();if(v==='plan')renderPlan();if(v==='food'){foodDate=todayStr();foodMeal=mealNow();renderFood();loadINDB()}if(v==='settings')loadINDB();if(v==='mind')renderMind();if(v==='wealth')renderWealth();if(v==='mission')renderMission();if(v==='plan')renderBodyCards();if(v==='status')renderStatus();}
 VIEWS.forEach(v=>{const tb=$('tab-'+v);if(tb)tb.addEventListener('click',()=>showView(v))});
 $('btn-settings').onclick=()=>showView('settings');$('adv-mind').onclick=()=>showView('mind');$('adv-wealth').onclick=()=>showView('wealth');
 $('s-t38').value=targetDate();$('s-t38').onchange=()=>{if($('s-t38').value){S.set('target38',$('s-t38').value);toast('Target date saved')}};$('open-timer').onclick=()=>showView('timer');
@@ -1425,6 +1572,8 @@ if('serviceWorker' in navigator&&location.protocol!=='file:')window.addEventList
 const p0=posOf(new Date());selW=p0.w;selD=p0.d;
 const qv=new URLSearchParams(location.search).get('view');
 fillSettings();drawTimer();showView(VIEWS.includes(qv)?qv:S.get('view','today'));
+if(needsAwakening())showAwakening();
 setInterval(()=>{checkReminders();if(!document.hidden&&S.get('view','today')==='today')renderToday()},60000);
 checkReminders();
+setTimeout(()=>loadINDB(),2500);
 })();

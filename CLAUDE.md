@@ -14,6 +14,11 @@ no backend, no tracking. Hosted on GitHub Pages from repo `Karma2025-reborn/Solo
 - Internal identifiers that are not user-visible keep their old names on purpose:
   `window.HUNTER_ASTHMA`, `window.HunterExport`, `.ics` event UIDs (`hunter-…@hunter.app`, so
   re-importing the calendar file doesn't duplicate events), manifest `"id": "./"` (keeps the install).
+- Profile fields added in v8: `prof.name`, `prof.goal` (`cut` | `strength` | `both`, display only: it does
+  not change training or nutrition). Keys added in v8: `hunter:onboarded` (System Awakening done),
+  `hunter:tlOpen` (day plan folded state). Existing users with any logs are marked onboarded automatically.
+- Stage names are original: E Awakening · D The Forge · C Proving Ground · B Refinement · A Ascent · S Apex.
+  Don't reintroduce anime terms (Arise, Shadow Monarch, Dungeon, "Daily Quest 100/100/100/10 km" …).
 - "Hunter" as the *player's* title (e.g. "D-Rank Hunter", "Hunter stats") is game flavour, not the app name.
 - All art is original SVG drawn in code. No anime characters, likenesses, quotes or catchphrases.
   Mentors are our own: Kael, Garo, Sora, Ryn (`js/hud.js`).
@@ -46,9 +51,9 @@ no backend, no tracking. Hosted on GitHub Pages from repo `Karma2025-reborn/Solo
 | `js/program.js` | Week/day program, stages, rank tests (`window.Plan`) |
 | `js/exercises.js`, `js/figures.js` | Exercise guide text, animated stick figures |
 | `js/diet.js` | Daily timeline, meals, diet rules |
-| `js/foods.js`, `js/foods_mh.js`, `js/foods_indb.js` | Food database (INDB is 108 KB) |
+| `js/foods.js`, `js/foods_mh.js`, `js/foods_indb.js` | Food database. INDB (108 KB) is **not** in index.html: `loadINDB()` in app.js injects it 2.5 s after boot, or when Food / Settings opens or the search box is focused, then calls `window.addFoods()` |
 | `js/mind.js`, `js/wealth.js`, `js/mission.js` | Mind / Wealth / Mission data |
-| `css/app.css` → `css/hud.css` | Base styles, then the HUD theme that overrides them |
+| `css/app.css` → `css/hud.css` → `css/arete.css` | Base styles, HUD theme, then the ARETE design layer (tokens, 44 px targets, Today components, onboarding) |
 | `fonts/` | Self-hosted Chakra Petch (headings) + Barlow (body) |
 | `icons/arete-icon.svg`, `icons/arete-maskable.svg` | Icon sources → `icon-192.png`, `icon-512.png`, `maskable-512.png` |
 | `icons/favicon.svg` | Favicon |
@@ -60,6 +65,8 @@ gold `#FFC857` for XP/rewards. Respect `prefers-reduced-motion` (hud.css turns a
 ## Releasing a change
 1. `node --check` every changed JS file.
 2. Test locally: `python -m http.server 8765`, open http://localhost:8765/ at 390 px width; console must be clean.
+   All `<script>` tags are `defer`; keep it that way (first paint before JS). Lighthouse targets (mobile,
+   gzip like GitHub Pages): Performance ≥ 90, Accessibility ≥ 95. v8.0 measured 95 / 100.
 3. Bump `VERSION` in `sw.js` (`arete-vX.Y.Z`) **and** the version text at the bottom of Settings in `index.html`.
    Add any new file to `SHELL` in `sw.js`.
 4. Update `README.md` (what's new) and this file if rules/structure changed.
