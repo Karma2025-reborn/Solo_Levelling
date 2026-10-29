@@ -153,8 +153,8 @@ function criteria72(rank,bw,ht,base){
    stage at speed: week w maps proportionally onto the 72-week template.
    ===================================================================== */
 const FAST=[
- {rank:'E',to:'D',start:1,end:8,name:'E-Rank · Awakening',goal:'From week 5: one muscle a day, abs daily, legs Saturday. 1,900 kcal, 140 g protein, 3.5 L water.',runKm:2},
- {rank:'D',to:'C',start:9,end:16,name:'D-Rank · Hunter Training',goal:'Year-end sprint: add weight every week in the 8–12 range. Belly visibly flatter by 31 December.',runKm:2},
+ {rank:'E',to:'D',start:1,end:8,name:'E-Rank · Awakening',goal:'Year-end sprint: one muscle a day, abs daily, legs Saturday. 1,900 kcal, 140 g protein, 3.5 L water.',runKm:2},
+ {rank:'D',to:'C',start:9,end:16,name:'D-Rank · Hunter Training',goal:'Finish the sprint, then barbell lifts join (week 11). Add weight every week in the 8–12 range.',runKm:2},
  {rank:'C',to:'B',start:17,end:26,name:'C-Rank · Gate Raids',goal:'Cut to sharp: barbell lifts join the split, 25 min incline walks. Visible abs by week 26.',runKm:2},
  {rank:'B',to:'A',start:27,end:35,name:'B-Rank · Shadow Extraction',goal:'Build & sharpen: heavier lifts, about 250 kcal deficit. Deeper cuts at about 8–10% body fat.',runKm:2},
  {rank:'A',to:'S',start:36,end:43,name:'A-Rank · Monarch Ascension',goal:'Peak strength and conditioning. S-Rank test at week 43 (10 months).',runKm:2}
@@ -171,13 +171,13 @@ const FAST_EPHASES=['Machines (weeks 1–3)','Full body (week 4)','Split · Year
 
 
 /* =====================================================================
-   v6 SPLIT PROGRAM (from week 5): one muscle a day, abs daily, legs Saturday.
+   v7 SPLIT PROGRAM (from week 1): one muscle a day, abs daily, legs Saturday.
    Double progression: stay in the rep range; when every set hits the top,
-   add weight next time. Phases: Year-end sprint (5–14) · Cut to sharp (15–26)
+   add weight next time. Phases: Year-end sprint (1–10) · Cut to sharp (15–26)
    · Build & sharpen (27–43) · S maintenance (44+).
    ===================================================================== */
-const SPLIT_FROM=5;
-function splitPhase(w){return w<=14?0:w<=26?1:2}
+const SPLIT_FROM=1;
+function splitPhase(w){return w<=10?0:w<=26?1:2}
 const SPLIT_PHASES=['Year-end sprint','Cut to sharp','Build & sharpen'];
 const ABS=[
  [['hangknee','3 × 10–15'],['plank','3 × 30–60 s']],

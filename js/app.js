@@ -7,8 +7,9 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 /* ---------- storage ---------- */
 const P='hunter:';
 const S={get(k,d){try{const v=localStorage.getItem(P+k);return v===null?d:JSON.parse(v)}catch(e){return d}},
-         set(k,v){try{localStorage.setItem(P+k,JSON.stringify(v))}catch(e){}},
-         del(k){try{localStorage.removeItem(P+k)}catch(e){}}};
+         set(k,v){SV++;try{localStorage.setItem(P+k,JSON.stringify(v))}catch(e){}},
+         del(k){SV++;try{localStorage.removeItem(P+k)}catch(e){}}};
+let SV=0;const _memo={};function memo(name,fn){const m=_memo[name];if(m&&m.v===SV&&m.d===ymd(new Date()))return m.r;const r=fn();_memo[name]={v:SV,d:ymd(new Date()),r};return r}
 
 /* ---------- dates ---------- */
 const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -62,10 +63,12 @@ function hasData(ds){return localStorage.getItem(P+dayKey(ds))!==null}
 
 /* ---------- XP / level / streak ---------- */
 function allDays(){const out=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(P+'day:'))out.push(k.slice((P+'day:').length))}}catch(e){}return out.sort()}
-function xpTotal(){let xp=0;for(const ds of allDays()){const q=questsFor(ds);xp+=q.filter(x=>x.done).length*15;if(getDay(ds).workout)xp+=50;try{xp+=missionQuests(ds).filter(x=>x.done).length*10}catch(e){}}
+function xpTotal(){return memo('xp',xpCalc)}
+function xpCalc(){let xp=0;for(const ds of allDays()){const q=questsFor(ds);xp+=q.filter(x=>x.done).length*15;if(getDay(ds).workout)xp+=50;try{xp+=missionQuests(ds).filter(x=>x.done).length*10}catch(e){}}
   try{xp+=Object.keys(S.get('mdone',{})).length*100}catch(e){}
   xp+=S.get('tests',[]).filter(t=>t.passed).length*500;return xp}
-function streak(){let n=0,d=new Date();if(dayScore(ymd(d))<0.8)d=addDays(d,-1);while(dayScore(ymd(d))>=0.8&&n<1000){n++;d=addDays(d,-1)}return n}
+function streak(){return memo('streak',streakCalc)}
+function streakCalc(){let n=0,d=new Date();if(dayScore(ymd(d))<0.8)d=addDays(d,-1);while(dayScore(ymd(d))>=0.8&&n<1000){n++;d=addDays(d,-1)}return n}
 
 /* ---------- workout log ---------- */
 const wlKey=(ds,k)=>`wl:${ds}:${k}`;
@@ -100,6 +103,7 @@ function header(){
   $('ranksub').textContent=p.days<0?`Starts ${prof.start}`:`Week ${Math.min(p.w,999)} · ${st.name.split(' · ')[1]||st.name}`;
   const xp=xpTotal(),lv=Math.floor(xp/1000)+1;
   $('lv').textContent=lv;
+  const seen=S.get('lvseen',0);if(!seen)S.set('lvseen',lv);else if(lv>seen){S.set('lvseen',lv);if(window.HUD)HUD.levelUp('[ SYSTEM ]','LEVEL UP',`You reached level ${lv}. Keep going, Hunter.`)}
   $('xpbar').style.width=((xp%1000)/10)+'%';
   $('xptext').textContent=`${xp.toLocaleString('en-IN')} XP · ${1000-xp%1000} XP to level ${lv+1} · ${streak()}-day streak`;
 }
@@ -116,6 +120,20 @@ function renderToday(){
   const nxt=tl.find(t=>{const [h,m]=t.time.split(':').map(Number);return h*60+m>=hm&&!rec.tl[t.id]})||null;
   $('nextup').innerHTML=nxt?`<span class="k">Next up · ${nxt.time}</span><b>${esc(nxt.title)}</b><span class="cue">${esc(nxt.detail)}${nxt.ml?` · ${nxt.ml} ml water`:''}</span>`
     :`<span class="k">Today</span><b>${dayScore(ds)>=0.8?'Daily quest complete':'Wind down and sleep'}</b><span class="cue">Lights out by 10:30 pm.</span>`;
+  // status hero
+  const ql=questsFor(ds),qd=ql.filter(q=>q.done).length,ft=totals(ds),T=targets();
+  const hs=$('statushero');if(hs&&window.HUD)hs.innerHTML=HUD.ring(ql.length?qd/ql.length:0,'QUESTS',`${qd}/${ql.length}`)+`<div class="hstats">
+    <div class="hstat" style="--c:var(--cyan)"><span class="k">Water</span><b>${(rec.water/1000).toFixed(1)}<small>/ ${waterL().toFixed(1)} L</small></b></div>
+    <div class="hstat" style="--c:var(--ok)"><span class="k">Protein</span><b>${Math.round(ft.p)}<small>/ ${T.p} g</small></b></div>
+    <div class="hstat" style="--c:var(--gold)"><span class="k">Calories</span><b>${Math.round(ft.kcal)}<small>/ ${T.kcal}</small></b></div>
+    <div class="hstat" style="--c:var(--violet)"><span class="k">Streak</span><b>${streak()}<small> days</small></b></div></div>`;
+  if(window.HUD){const h=now.getHours();let order='';
+    if(!sess.rest&&!rec.workout&&h<11)order=`Complete ${sess.t} today.`;
+    else if(rec.water<waterL()*1000*Math.min(1,Math.max(0,(h-6)/14)))order='Drink 2 glasses of water now.';
+    else if(ft.p<T.p*0.6&&h>=14)order=`Protein is at ${Math.round(ft.p)} g. Add whey, eggs, paneer or soya.`;
+    else if(!sess.rest&&!rec.workout)order=`${sess.t} is still waiting.`;
+    else order='Sleep by 10:30. Growth happens tonight.';
+    HUD.renderMentor($('mentor'),{date:ds,sessT:sess.t,rest:!!sess.rest,order})}
   // water
   const goal=waterL()*1000;$('water-now').textContent=(rec.water/1000).toFixed(2);$('water-goal').textContent=` / ${waterL().toFixed(1)} L`;
   $('water-fill').style.height=Math.min(100,rec.water/goal*100)+'%';
@@ -218,7 +236,7 @@ function logger(key,ns,ds,last,mode){
     for(let i=0;i<ns;i++){const v=cur[i]||{},ph=last&&last.sets[i]?last.sets[i]:{};
       rows+=`<div class="setrow two"><span>Set ${i+1}</span><input type="number" inputmode="numeric" step="1" min="0" placeholder="${ph.reps??u}" value="${v.reps??''}" data-k="${key}" data-i="${i}" data-f="reps" data-u="${mode==='secs'?'s':''}" aria-label="Set ${i+1} ${u}"><span class="x">${u}</span></div>`}
     box.innerHTML=rows+`<p class="cue">${mode==='secs'?'Seconds you held with good form. Stop when your hips sag.':'Reps with good form. Beat last time by 1–2.'}</p>`;return box}
-  let rows='';for(let i=0;i<ns;i++){const v=cur[i]||{},ph=last&&last.sets[i]?last.sets[i]:{};
+  let rows=`<div class="setrow head"><span></span><b>Weight kg</b><span></span><b>Reps</b></div>`;for(let i=0;i<ns;i++){const v=cur[i]||{},ph=last&&last.sets[i]?last.sets[i]:{};
     rows+=`<div class="setrow"><span>Set ${i+1}</span><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="${ph.kg??'kg'}" value="${v.kg??''}" data-k="${key}" data-i="${i}" data-f="kg" aria-label="Set ${i+1} weight kg"><span class="x">kg ×</span><input type="number" inputmode="numeric" step="1" min="0" placeholder="${ph.reps??'reps'}" value="${v.reps??''}" data-k="${key}" data-i="${i}" data-f="reps" aria-label="Set ${i+1} reps"></div>`}
   const tip=last?`<p class="cue">Grey numbers are last time. Beat them by 1 rep or a little weight.</p>`:`<p class="cue">Bodyweight exercise? Leave kg empty.</p>`;
   box.innerHTML=rows+tip;return box;
@@ -231,6 +249,7 @@ $('day').addEventListener('change',e=>{
   const t=e.target;if(!t.dataset.k)return;const ds=todayStr(),k=t.dataset.k;
   const arr=S.get(wlKey(ds,k),[]);const i=+t.dataset.i;arr[i]=arr[i]||{};const v=parseFloat(t.value);arr[i][t.dataset.f]=isNaN(v)?null:v;
   S.set(wlKey(ds,k),arr);saveHist(k,ds,arr.filter(Boolean).map(s=>({kg:s.kg||0,reps:s.reps||0})),t.dataset.u);
+  const s=arr[i];if(!t.dataset.u&&s&&s.kg&&s.reps&&s.reps>25&&s.kg<=15)toast(`${s.kg} kg × ${s.reps} reps? Check you didn't swap them: weight goes in the first box.`);
 });
 
 /* ---------- exercise sheet ---------- */
@@ -440,7 +459,7 @@ function checkReminders(){
 /* ---------- backup ---------- */
 function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
 function allData(){const o={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(P))o[k]=localStorage.getItem(k)}}catch(e){}return o}
-setTimeout(()=>{try{initExport()}catch(e){console.error(e)}},0);
+setTimeout(()=>{try{initExport();initSwapFix();initReset()}catch(e){console.error(e)}},0);
 $('export').onclick=()=>{download(new Blob([JSON.stringify({app:'hunter',v:2,saved:new Date().toISOString(),data:allData()})],{type:'application/json'}),`hunter-backup-${todayStr()}.json`);$('backup-msg').textContent='Backup saved to your Downloads.'};
 $('import').onchange=async e=>{const f=e.target.files[0];if(!f)return;
   try{const j=JSON.parse(await f.text());if(j.app!=='hunter'||!j.data)throw 0;Object.entries(j.data).forEach(([k,v])=>{if(k.startsWith(P))localStorage.setItem(k,v)});$('backup-msg').textContent='Backup restored. Reloading…';setTimeout(()=>location.reload(),700)}
@@ -1300,6 +1319,44 @@ function initExport(){
   $('ex-file').onclick=()=>shareOrDownload(new Blob([JSON.stringify(analysisData(days()),null,1)],{type:'application/json'}),`hunter-analysis-${todayStr()}.json`,msg);
   $('ex-csv').onclick=()=>shareOrDownload(new Blob(['﻿'+csvOf(dateRange(days()).map(dayRow))],{type:'text/csv'}),`hunter-daily-${todayStr()}.csv`,msg);
   $('ex-copy').onclick=async()=>{const t=summaryText(days());try{await navigator.clipboard.writeText(t);msg('Summary copied. Paste it into your chat with Claude.')}catch(e){const ta=$('ex-text');ta.hidden=false;ta.value=t;ta.select();msg('Select all and copy the text below.')}};
+}
+
+
+/* ---------- fix: kg and reps entered the wrong way round ---------- */
+function swapLogs(from,before){
+  const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(P+'hist:')||k.startsWith(P+'wl:'))keys.push(k.slice(P.length))}
+  const backup={};let n=0;
+  keys.forEach(k=>{
+    if(k.startsWith('hist:')){const h=S.get(k,[]);backup[k]=JSON.parse(JSON.stringify(h));let ch=false;
+      h.forEach(x=>{if(x.date>before||x.date<from||x.u==='s')return;if(!x.sets.every(s=>s.kg>0))return;x.sets=x.sets.map(s=>({kg:s.reps,reps:s.kg}));x.e1=Math.round(Math.max(...x.sets.map(s=>s.kg*(1+s.reps/30)))*10)/10;ch=true;n++});
+      if(ch)S.set(k,h)}
+    else{const ds=k.split(':')[1];if(ds>before||ds<from)return;const arr=S.get(k,[]);if(!Array.isArray(arr))return;backup[k]=arr;
+      S.set(k,arr.map(s=>s&&s.kg&&s.reps?{...s,kg:s.reps,reps:s.kg}:s))}
+  });
+  S.set('swapBackup',{at:new Date().toISOString(),from,before,data:backup});return n;
+}
+function initSwapFix(){
+  const b=$('swap-go');if(!b)return;const msg=t=>$('swap-msg').textContent=t;
+  $('swap-date').value=todayStr();$('swap-date').max=todayStr();$('swap-from').value=prof.start;$('swap-from').max=todayStr();
+  const bk=S.get('swapBackup',null);$('swap-undo').hidden=!bk;
+  b.onclick=()=>{const d=$('swap-date').value||todayStr(),f=$('swap-from').value||'2000-01-01';if(!confirm(`Swap kg and reps in every strength log from ${f} to ${d}?`))return;const n=swapLogs(f,d);msg(`Fixed ${n} workout entries. Open Body to see the corrected numbers.`);$('swap-undo').hidden=false};
+  $('swap-undo').onclick=()=>{const bk=S.get('swapBackup',null);if(!bk)return;Object.entries(bk.data).forEach(([k,v])=>S.set(k,v));S.del('swapBackup');$('swap-undo').hidden=true;msg('Undone. Logs are back to how they were.')};
+}
+
+
+/* ---------- start fresh: erase every log, keep profile settings ---------- */
+function initReset(){
+  const b=$('reset-go');if(!b)return;
+  const mon=ymd(mondayOf(new Date()));$('reset-start').value=mon;
+  b.onclick=()=>{
+    if($('reset-confirm').value.trim().toUpperCase()!=='RESET'){$('reset-msg').textContent='Type RESET in the box first.';return}
+    try{download(new Blob([JSON.stringify({app:'hunter',v:2,saved:new Date().toISOString(),data:allData()})],{type:'application/json'}),`hunter-before-reset-${todayStr()}.json`)}catch(e){}
+    const keep=S.get('profile',{});const del=[];
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(P)||k.startsWith('erank:'))del.push(k)}
+    del.forEach(k=>localStorage.removeItem(k));
+    keep.start=$('reset-start').value||mon;S.set('profile',keep);S.set('rank','E');S.set('mver',99);S.set('migratedV1',true);S.set('spiroMig',true);S.set('resetAt',new Date().toISOString());
+    $('reset-msg').textContent='Done. Starting fresh…';setTimeout(()=>location.reload(),600);
+  };
 }
 
 /* ---------- toast ---------- */

@@ -1,4 +1,4 @@
-# Hunter System v6.0
+# Hunter System v7.0
 
 A 72-week E → S rank transformation app that installs on your phone and works offline.
 
@@ -11,6 +11,14 @@ A 72-week E → S rank transformation app that installs on your phone and works 
 | **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
 | **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
 | **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
+
+## v7.0: new look, mentors, start fresh
+- **HUD redesign**: notched glass System windows with glowing edges, hexagon rank badge, mana-particle background, quest-progress ring with water / protein / calories / streak, System-style notifications, LEVEL UP animation, smooth tab transitions.
+- **Mentors** (original characters, each with an animated sigil): Kael · The Night Warden (back and pump days), Garo · The Living Mountain (chest and legs), Sora · The Still Sky (shoulders and rest days), Ryn · The Unblessed (arms). A new line each day plus an "order" based on what you still need to do.
+- **Start fresh** (Settings, red window): erases every log, keeps your settings, saves a backup file first. Type RESET to confirm and pick the new week-1 date.
+- The split now runs from week 1: Year-end sprint weeks 1–10, Cut to sharp 11–26, Build & sharpen 27–43.
+- Faster and fully offline: fonts are bundled (no Google Fonts call), heavy totals are cached between screens, the background pauses when the app is hidden, and all animation turns off if your phone has "reduce motion" on.
+- Body tab: workout first, health and guides below it.
 
 ## v6.0: split program for sharp cuts
 From week 5 the gym plan is one muscle a day: **Mon Chest · Tue Back · Wed Shoulders · Thu Arms · Fri Upper pump · Sat Legs · Sun rest + long walk**, with 10 min abs every gym day and an incline-walk fat burner (20 min, 25 min in weeks 15–26, 15 min after).

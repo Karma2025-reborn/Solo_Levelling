@@ -509,3 +509,8 @@ ol.road li.cur b{color:var(--stretch)}
 .prog{font-size:12px;margin:4px 0 0;color:var(--muted)}
 .prog.up{color:var(--ok);font-weight:600}
 .prog.hold{color:var(--gold,#F2C14E)}
+.setrow.head{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--cyan)}
+.setrow.head b{font-weight:600}
+#swap-date{font:600 15px var(--body);background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:8px}
+#swap-from{font:600 15px var(--body);background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:8px}
+#reset-start,#reset-confirm{font:600 15px var(--body);background:var(--panel2);color:var(--ink);border:1px solid var(--line);padding:8px;width:100%}

@@ -125,7 +125,7 @@ const RULES={
  A:['About 200 kcal below maintenance: stay sharp while lifting heavier.','Protein 1.8 g per kg.','More carbs on Mon / Tue strength days (rice or roti at lunch), fewer on rest days.','After the S-Rank test at week 43, move to maintenance.'],
  S:['Maintain: stay within 1–2 kg of your rank-up weight.','Protein 1.6–1.8 g per kg.','80 / 20: clean meals 80% of the time, enjoy the rest.','Re-test every 3 months to keep the S-Rank.']
 };
-function rulesFor(rank,w){if(rank==='E')return RULES['E'+(w<=4?0:w<=8?1:2)];return RULES[rank]}
+function rulesFor(rank,w){if(rank==='E')return RULES.E2;return RULES[rank]}
 
 const VITALITY=['Lose the belly: fat around the middle lowers testosterone and blood flow. Fat loss is the biggest single help for stamina.',
  'Zinc foods daily: pumpkin seeds (1 tbsp), chana, rajma, eggs, curd, cashews.',

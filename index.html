@@ -11,11 +11,13 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="preload" href="fonts/chakra-petch-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/barlow-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/hud.css">
 </head>
 <body>
+<div id="hud-bg" aria-hidden="true"></div>
 
 <header class="appbar">
   <div class="rank" aria-label="Current rank"><span id="rank">E</span></div>
@@ -31,10 +33,12 @@
 <section id="v-today" class="view">
   <section class="win hero">
     <div class="sys" id="today-date">[ System ] · Today</div>
+    <div class="statushero" id="statushero" style="margin-top:12px"></div>
     <div class="nextup" id="nextup"></div>
     <div class="xprow"><div class="xp"><i id="xpbar"></i></div><span id="xptext" class="cue"></span></div>
   </section>
 
+  <section class="win" id="mentor"></section>
   <section class="win" id="waternudge" hidden></section>
   <section class="win" id="breath"></section>
 
@@ -69,11 +73,6 @@
 <section id="v-plan" class="view" hidden>
   <div class="t-actions left"><button type="button" class="ghost" id="open-timer">Rest timer</button></div>
   <section class="win" id="cutcheck"></section>
-  <section class="win" id="health"></section>
-  <section class="win vitwin" id="vitality"></section>
-  <section class="win" id="belly"></section>
-  <section class="win" id="asthma"></section>
-  <section class="win" id="lookbest"></section>
   <section class="win">
     <div class="sys">[ System ] · Split program · sharp cuts by week 26</div>
     <div class="ranks" id="ranks" role="group" aria-label="Rank stage"></div>
@@ -82,6 +81,12 @@
   </section>
   <nav class="sticky" aria-label="Day"><div class="days" id="days"></div><button type="button" id="btn-today" class="todaybtn">Jump to today</button></nav>
   <main id="day"></main>
+<div class="sys" style="margin-top:8px">[ System ] · Health & guides</div>
+  <section class="win" id="health"></section>
+  <section class="win vitwin" id="vitality"></section>
+  <section class="win" id="belly"></section>
+  <section class="win" id="asthma"></section>
+  <section class="win" id="lookbest"></section>
 </section>
 
 <!-- ======================= FOOD ======================= -->
@@ -371,6 +376,14 @@
     <p class="cue">The full Mind and Wealth systems are still here with all your data. Use them later when you have more time.</p>
     <div class="t-actions left"><button type="button" class="ghost" id="adv-mind">Open Mind (INT)</button><button type="button" class="ghost" id="adv-wealth">Open Wealth</button></div>
   </section>
+  <section class="win danger" id="resetwin">
+    <h3 class="sub">Start fresh</h3>
+    <p class="cue">Erases every log: workouts, sets, food, water, quests, body log, rank tests, Mission progress and XP. Your settings (height, age, diet, asthma mode) stay. A backup file is saved to Downloads first, just in case.</p>
+    <div class="cgrid"><label class="exrange"><span>New start date (week 1)</span><input type="date" id="reset-start"></label>
+    <label class="exrange"><span>Type RESET to confirm</span><input type="text" id="reset-confirm" autocomplete="off" placeholder="RESET"></label></div>
+    <div class="t-actions left exbtns"><button type="button" id="reset-go" class="danger">Erase everything and start fresh</button></div>
+    <p id="reset-msg" class="cue" role="status"></p>
+  </section>
   <section class="win" id="exportwin">
     <h3 class="sub">Export for analysis</h3>
     <p class="cue">Send your data to Claude (or a spreadsheet) to check what is working. Includes food and macros per day, workouts, sets, cardio, core, mobility, breathing, water, waist and weight, rank tests and Mission hours.</p>
@@ -401,7 +414,7 @@
     </ul>
     <button type="button" id="reset" class="danger" style="margin-top:12px">Erase all progress</button>
   </section>
-  <p class="cue center">Hunter System · v6.0 · works offline once installed</p>
+  <p class="cue center">Hunter System · v7.0 · works offline once installed</p>
 </section>
 </div>
 
@@ -432,6 +445,7 @@
   <button type="button" id="tab-status"><svg viewBox="0 0 24 24"><path d="M4 18l5-6 4 3 7-9"/></svg>Stats</button>
 </nav>
 
+<script src="js/hud.js"></script>
 <script src="js/figures.js"></script>
 <script src="js/exercises.js"></script>
 <script src="js/program.js"></script>

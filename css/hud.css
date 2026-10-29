@@ -1,0 +1,165 @@
+/* Hunter System v7 · HUD theme
+   Loaded after app.css and overrides it. Dark glass "System windows" with
+   notched corners, gradient edges, mana-blue + void-violet accents.
+   Fonts are self-hosted so the app is fully offline. */
+@font-face{font-family:"Chakra Petch";font-weight:500;font-display:swap;src:url(../fonts/chakra-petch-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Chakra Petch";font-weight:600;font-display:swap;src:url(../fonts/chakra-petch-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Chakra Petch";font-weight:700;font-display:swap;src:url(../fonts/chakra-petch-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Barlow";font-weight:400;font-display:swap;src:url(../fonts/barlow-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Barlow";font-weight:500;font-display:swap;src:url(../fonts/barlow-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Barlow";font-weight:600;font-display:swap;src:url(../fonts/barlow-latin-600-normal.woff2) format("woff2")}
+
+:root{
+  --bg:#03050B; --panel:#0A1020; --panel2:#0E1730; --line:#1C2C52; --glow:#3D7BFF;
+  --ink:#E6EEFF; --muted:#8E9CC0; --dim:#4A5A80;
+  --cyan:#4FD8FF; --violet:#8B5CFF; --gold:#FFC857; --red:#FF5470; --ok:#2EF2A0;
+  --edge:linear-gradient(135deg,rgba(79,216,255,.75),rgba(139,92,255,.35) 45%,rgba(79,216,255,.08) 70%,rgba(139,92,255,.55));
+  --notch:14px;
+}
+html{background:var(--bg)}
+body{background:transparent;background-image:none;-webkit-tap-highlight-color:transparent}
+#hud-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+   radial-gradient(ellipse 90% 45% at 50% -8%,rgba(61,123,255,.28),transparent 70%),
+   radial-gradient(ellipse 60% 40% at 100% 100%,rgba(139,92,255,.16),transparent 70%),
+   radial-gradient(ellipse 50% 35% at 0% 70%,rgba(79,216,255,.08),transparent 70%),
+   var(--bg)}
+#hud-bg::after{content:"";position:absolute;inset:0;opacity:.35;
+  background-image:linear-gradient(rgba(79,216,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(79,216,255,.06) 1px,transparent 1px);
+  background-size:36px 36px;mask-image:linear-gradient(180deg,transparent,#000 55%,transparent)}
+#hud-bg canvas{position:absolute;inset:0;width:100%;height:100%}
+
+/* ---------- System windows ---------- */
+.win{position:relative;border:0;border-radius:0;background:linear-gradient(180deg,rgba(14,23,48,.92),rgba(8,13,28,.92));
+  clip-path:polygon(var(--notch) 0,100% 0,100% calc(100% - var(--notch)),calc(100% - var(--notch)) 100%,0 100%,0 var(--notch));
+  box-shadow:none;padding:18px 16px}
+.win::before{content:"";position:absolute;inset:0;padding:1px;background:var(--edge);pointer-events:none;
+  clip-path:inherit;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.win::after{content:"";position:absolute;top:0;left:var(--notch);width:64px;height:2px;background:var(--cyan);box-shadow:0 0 12px var(--cyan);pointer-events:none}
+h3.sub{font:700 15px/1 var(--display);letter-spacing:.16em;color:var(--cyan);display:flex;align-items:center;gap:8px;text-shadow:0 0 14px rgba(79,216,255,.35)}
+h3.sub::before{content:"";width:7px;height:7px;background:var(--cyan);transform:rotate(45deg);box-shadow:0 0 8px var(--cyan);flex:none}
+.sys{color:var(--cyan);text-shadow:0 0 12px rgba(79,216,255,.45)}
+
+/* ---------- App bar ---------- */
+.appbar{position:sticky;top:0;z-index:15;padding:10px 16px 8px;background:linear-gradient(180deg,rgba(3,5,11,.96),rgba(3,5,11,.75));
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid rgba(79,216,255,.12);max-width:none}
+.appbar>*{position:relative}
+.rank{width:48px;height:52px;border:0;border-radius:0;background:linear-gradient(160deg,rgba(79,216,255,.25),rgba(139,92,255,.25));
+  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);box-shadow:none;position:relative}
+.rank::before{content:"";position:absolute;inset:2px;background:#060A16;clip-path:inherit}
+.rank span{position:relative;font-size:24px;color:var(--cyan);text-shadow:0 0 12px var(--cyan),0 0 26px rgba(79,216,255,.6)}
+.appbar-t b{letter-spacing:.14em;font-size:17px;background:linear-gradient(90deg,#fff,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.appbar .lv b{color:var(--gold);text-shadow:0 0 12px rgba(255,200,87,.55)}
+.iconbtn{border-color:rgba(79,216,255,.3);border-radius:0;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+
+/* ---------- Buttons ---------- */
+button.primary,button.ghost,button.danger,label.ghost{border-radius:0;letter-spacing:.04em;
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);transition:transform .12s,box-shadow .2s,filter .2s}
+button.primary{background:linear-gradient(135deg,var(--cyan),#3D7BFF);color:#02060F;border:0;box-shadow:0 0 18px rgba(79,216,255,.35)}
+button.primary:active,button.ghost:active{transform:scale(.97)}
+button.primary:disabled{filter:grayscale(.6) brightness(.7)}
+button.ghost,label.ghost{background:rgba(79,216,255,.06);border-color:rgba(79,216,255,.55)}
+.chip{border-radius:0;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)}
+
+/* ---------- Tab bar ---------- */
+.tabbar{background:linear-gradient(180deg,rgba(6,10,22,.82),rgba(3,5,11,.97));border-top:1px solid rgba(79,216,255,.18)}
+.tabbar button{position:relative;transition:color .2s}
+.tabbar button[aria-current="page"]{color:var(--cyan)}
+.tabbar button[aria-current="page"]::before{content:"";position:absolute;top:0;left:22%;right:22%;height:2px;background:var(--cyan);box-shadow:0 0 12px var(--cyan),0 0 24px var(--cyan)}
+.tabbar button[aria-current="page"]::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 50% 0,rgba(79,216,255,.18),transparent 70%);pointer-events:none}
+
+/* ---------- Status hero ---------- */
+.statushero{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.ringwrap{position:relative;width:104px;height:104px}
+.ringwrap svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ringwrap .rv{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.ringwrap .rv b{font:700 30px var(--display);color:var(--ink);text-shadow:0 0 14px rgba(79,216,255,.6)}
+.ringwrap .rv span{font:600 10px var(--display);letter-spacing:.18em;color:var(--muted);margin-top:4px}
+.ring-bg{fill:none;stroke:#13203F;stroke-width:8}
+.ring-fg{fill:none;stroke:url(#ringgrad);stroke-width:8;stroke-linecap:butt;transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 6px rgba(79,216,255,.7))}
+.ring-tick{fill:none;stroke:#03050B;stroke-width:9;stroke-dasharray:1.5 9.3}
+.hstats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.hstat{background:rgba(79,216,255,.05);border-left:2px solid var(--c,var(--cyan));padding:6px 8px;min-width:0}
+.hstat .k{font-size:10px}
+.hstat b{display:block;font:700 18px/1.1 var(--display);color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hstat b small{font:500 11px var(--body);color:var(--muted);margin-left:2px}
+.xp{height:10px;border:0;background:#0B1430;border-radius:0;position:relative;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)}
+.xp i{background:linear-gradient(90deg,var(--violet),var(--cyan));box-shadow:0 0 14px var(--cyan)}
+.xp::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 9%,rgba(3,5,11,.9) 9% 10%)}
+.hero .nextup{border-top:1px dashed rgba(79,216,255,.18);padding-top:12px}
+
+/* ---------- Mentor ---------- */
+.mentor{--m:var(--cyan);display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center;overflow:hidden}
+.mentor .emb{width:96px;height:96px;position:relative}
+.mentor .emb svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 10px var(--m))}
+.mentor .emb .spin{transform-origin:50px 50px;animation:spin 18s linear infinite}
+.mentor .emb .spin2{transform-origin:50px 50px;animation:spin 11s linear infinite reverse}
+.mentor .emb .pulse{transform-origin:50px 50px;animation:pulse 3.2s ease-in-out infinite}
+.mentor .who{font:600 11px var(--display);letter-spacing:.2em;text-transform:uppercase;color:var(--m)}
+.mentor h3{font:700 22px/1.1 var(--display);margin:2px 0 6px;letter-spacing:.04em}
+.mentor blockquote{margin:0;font:500 16px/1.45 var(--body);color:var(--ink);border-left:2px solid var(--m);padding-left:10px}
+.mentor .order{margin-top:8px;font:600 13px var(--body);color:var(--m)}
+.mentor .order::before{content:"▸ ORDER  ";letter-spacing:.14em;font-family:var(--display)}
+.win.mentorwin::after{background:var(--m);box-shadow:0 0 12px var(--m)}
+.win.mentorwin{background:radial-gradient(ellipse 70% 90% at 0 50%,color-mix(in srgb,var(--m) 16%,transparent),transparent 70%),linear-gradient(180deg,rgba(14,23,48,.92),rgba(8,13,28,.92))}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:.75;transform:scale(.96)}50%{opacity:1;transform:scale(1.04)}}
+
+/* ---------- Quests ---------- */
+.q{background:rgba(79,216,255,.04);border:1px solid rgba(79,216,255,.14);border-radius:0;transition:background .2s,border-color .2s}
+.q:has(input:checked){background:rgba(46,242,160,.06);border-color:rgba(46,242,160,.35)}
+.q input{border-color:var(--cyan);border-radius:0;transform:rotate(45deg) scale(.85)}
+.q input:checked{background:var(--ok);border-color:var(--ok);box-shadow:0 0 10px var(--ok)}
+.q input:checked::after{transform:rotate(0) translate(0,-1px)}
+
+/* ---------- Workout cards ---------- */
+.card{border:1px solid rgba(79,216,255,.16);border-radius:0;background:linear-gradient(180deg,rgba(14,23,48,.85),rgba(8,13,28,.9));
+  clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
+.fig{background:radial-gradient(circle at 50% 60%,rgba(79,216,255,.08),transparent 70%),#060B18}
+.bhead{border-bottom:0;position:relative;padding-bottom:8px}
+.bhead::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,var(--c),transparent)}
+.bhead h3{text-shadow:0 0 12px color-mix(in srgb,var(--c) 60%,transparent)}
+.days button,.weeks button{border-radius:0}
+.days button[aria-pressed="true"]{background:linear-gradient(135deg,var(--cyan),#3D7BFF);box-shadow:0 0 14px rgba(79,216,255,.45)}
+nav.sticky{background:rgba(3,5,11,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);top:62px}
+.setrow input,.cgrid input,.cgrid select{border-radius:0}
+.logger{background:rgba(4,8,18,.8)}
+.prog.up{text-shadow:0 0 10px rgba(46,242,160,.45)}
+
+/* ---------- Toast as System notification ---------- */
+.toast{border:0;border-radius:0;background:linear-gradient(180deg,rgba(14,23,48,.98),rgba(8,13,28,.98));box-shadow:0 0 0 1px rgba(79,216,255,.6),0 0 30px rgba(79,216,255,.25);padding:12px 16px 12px;max-width:min(92vw,420px)}
+.toast::before{content:"[ NOTIFICATION ]";display:block;font:700 10px var(--display);letter-spacing:.24em;color:var(--cyan);margin-bottom:4px}
+
+/* ---------- Level up / rank up ---------- */
+.lvup{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:radial-gradient(circle,rgba(10,20,50,.96),rgba(3,5,11,.99));animation:fadein .25s ease-out}
+.lvup[hidden]{display:none}
+.lvup .core{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.lvup .rings{position:absolute;left:50%;top:50%;width:10px;height:10px}
+.lvup .rings i{position:absolute;left:-90px;top:-90px;width:180px;height:180px;border:2px solid var(--cyan);border-radius:50%;opacity:0;animation:ring 1.6s ease-out infinite}
+.lvup .rings i:nth-child(2){animation-delay:.4s;border-color:var(--violet)}
+.lvup .rings i:nth-child(3){animation-delay:.8s}
+.lvup .t1{font:700 13px var(--display);letter-spacing:.4em;color:var(--cyan)}
+.lvup .t2{font:700 64px/1 var(--display);letter-spacing:.06em;background:linear-gradient(180deg,#fff,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px rgba(79,216,255,.8));animation:rise .6s cubic-bezier(.2,.9,.2,1)}
+.lvup .t3{font:500 16px var(--body);color:var(--muted);max-width:30ch}
+.rankup{background:radial-gradient(circle,rgba(30,15,60,.9),rgba(3,5,11,.96))}
+.rankup b{background:linear-gradient(180deg,#fff,var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 24px rgba(139,92,255,.9))}
+@keyframes ring{0%{transform:scale(.2);opacity:.9}100%{transform:scale(1.8);opacity:0}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{transform:translateY(16px) scale(.9);opacity:0}to{transform:none;opacity:1}}
+
+/* ---------- View transitions ---------- */
+.view:not([hidden]){animation:viewin .28s ease-out}
+@keyframes viewin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- Danger zone ---------- */
+.win.danger::before{background:linear-gradient(135deg,rgba(255,84,112,.8),rgba(255,84,112,.1))}
+.win.danger::after{background:var(--red);box-shadow:0 0 12px var(--red)}
+.win.danger h3.sub{color:var(--red);text-shadow:0 0 12px rgba(255,84,112,.4)}
+.win.danger h3.sub::before{background:var(--red);box-shadow:0 0 8px var(--red)}
+button.danger{background:rgba(255,84,112,.1);color:var(--red);border-color:var(--red)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  #hud-bg canvas{display:none}
+}
+@media (max-width:380px){.mentor{grid-template-columns:72px 1fr}.mentor .emb{width:72px;height:72px}.ringwrap{width:88px;height:88px}}
