@@ -196,7 +196,7 @@ function renderGate(p,sess,rec,st){
   const strength=sess.blocks.filter(b=>b.kind==='strength'||b.kind==='core').reduce((a,b)=>a+(b.items||[]).length,0);
   const total=sess.blocks.reduce((a,b)=>a+b.min,0);
   let state='open',title=sess.t,line='',btn='';
-  if(sess.rest){state='rest';title='Rest + long walk';line='No Gate today. Muscle is built while you recover: easy walk for your steps, protein, early sleep.'}
+  if(sess.rest){state='rest';title='Rest + long walk';line='No Gate today. Muscle is built while you recover: easy walk for your steps, protein, early sleep.'+(routines().length?' <button type="button" class="link" id="gate-rt">Or run one of your routines</button>':'')}
   else if(rec.workout){state='clear';line='Gate cleared. Log any extra sets in Body.'}
   else if(br==='r'){state='sealed';line='Breathing check is red: the Gate stays sealed today. Rest and follow your asthma plan.'}
   else if(br==='y'){state='light';line='Yellow zone: enter the light version only. 30 min easy walk + mobility, no heavy sets.'}
@@ -209,7 +209,8 @@ function renderGate(p,sess,rec,st){
     ${sess.rest?'':`<div class="gate-meta"><span>${total} min</span><span>${strength} exercises</span><span class="gxp">+${gateXP(sess)} XP</span></div>
     <div class="bar">${sess.blocks.map(b=>`<i style="flex:${b.min};background:${COL[b.kind]}"></i>`).join('')}</div>`}
     ${line?`<p class="cue gate-line">${line}</p>`:''}${sess.note?`<p class="cue">${esc(sess.note)}</p>`:''}</div>${btn}`;
-  const gw=$('go-workout');if(gw)gw.onclick=()=>{if(state==='clear'){selW=p.w;selD=p.d;showView('plan')}else openGate()};
+  const gw=$('go-workout');if(gw)gw.onclick=()=>{if(state==='clear'){selW=p.w;selD=p.d;showView('plan')}else{const run=S.get('gateRun',{}),rt=run.ds===todayStr()&&run.rt?routines().find(x=>x.id===run.rt):null;openGate(rt||undefined)}};
+  const gr=$('gate-rt');if(gr)gr.onclick=()=>showView('plan');
 }
 
 /* ---------- Today: water + protein quick-add ---------- */
@@ -361,9 +362,7 @@ function renderStatus(){
   const lastT=tests.filter(t=>t.rank===nr).slice(-1)[0];
   const ev=nr?evalTest(nr,lastT?lastT.res:{}):[];
   const met=ev.filter(x=>x.ok).length;
-  $('rankcard').innerHTML=`<div class="rc"><div class="rank xl"><span>${r}</span></div><div><div class="sys">[ System ] · Hunter rank</div><b class="big-t">${r}-Rank Hunter</b>
-    <span class="cue">${nr?`Next: ${nr}-Rank · ${met} of ${ev.length} requirements met${lastT?` (test on ${lastT.date})`:''}`:'Top rank reached. Re-test every 3 months.'}</span></div></div>
-    ${nr?`<ul class="reqs">${ev.map(c=>`<li class="${c.ok?'ok':''}"><span>${esc(c.l)}</span><b>${c.v!=null&&c.v!==undefined?c.v:'–'} <small>/ ${c.cmp==='<='?'≤':'≥'} ${c.t} ${c.u==='done'||c.u==='ratio'?'':c.u}</small></b></li>`).join('')}</ul>`:''}`;
+  renderRoadmap();renderRival();
   // stats
   const days=allDays(),workouts=days.filter(d=>getDay(d).workout).length;
   let sets=0;try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(P+'hist:'))sets+=JSON.parse(localStorage.getItem(k)).reduce((a,x)=>a+x.sets.length,0)}}catch(e){}
@@ -723,30 +722,38 @@ function statsAt(asof){
   [['bbbench','bench','Bench',0.4,1.45],['squat','squat','Squat',0.5,1.75],['deadlift','dead','Deadlift',0.6,2.3]].forEach(([hk,mk,l,a,b])=>{
     const e=Math.max(bestE1(hk,asof,42)||0,m[mk]?m[mk].v:0);if(e)comp('STR',`${l} max ÷ body weight`,lin(e/bw,a,b),`${(e/bw).toFixed(2)}×`)});
   const lp=liftProgress(asof);if(lp)comp('STR','Lift progress since first log',lin(lp.v,0,1),`${lp.v>=0?'+':''}${Math.round(lp.v*100)}% (${lp.n} exercises)`);
-  // AGI
-  if(m.pace)comp('AGI','Run pace',lin(m.pace.v,9,4.5),`${m.pace.v.toFixed(1)} min/km`);
+  // END: engine and stamina
+  if(m.pace)comp('END','Run pace',lin(m.pace.v,9,4.5),`${m.pace.v.toFixed(1)} min/km`);
+  if(m.plank)comp('END','Plank hold',lin(m.plank.v,0,180),`${m.plank.v} s`);
+  if(m.rhr)comp('END','Resting heart rate',lin(m.rhr.v,90,55),`${m.rhr.v} bpm`);
+  const from28=ymd(addDays(parseYmd(asof),-27)),inWin=x=>x.date>=from28&&x.date<=asof,al=actLog().filter(inWin);
+  const started=posOf(parseYmd(from28)).days>=0||allDays().some(d=>d<=from28);
+  const cmin=al.filter(x=>x.type!=='mob'&&x.type!=='core').reduce((t,x)=>t+(x.min||0),0);
+  if(cmin||started)comp('END','Cardio, avg per week (4 weeks)',lin(cmin/4,0,150),`${Math.round(cmin/4)} min`);
+  // AGI: power and mobility
   if(m.burpee)comp('AGI','Burpees in 1 min',lin(m.burpee.v,5,30),`${m.burpee.v}`);
-  // VIT
-  if(m.plank)comp('VIT','Plank hold',lin(m.plank.v,0,180),`${m.plank.v} s`);
-  if(m.rhr)comp('VIT','Resting heart rate',lin(m.rhr.v,90,55),`${m.rhr.v} bpm`);
-  const from28=ymd(addDays(parseYmd(asof),-27)),plan=plannedWorkouts(from28,asof);
-  if(plan>=3){let done=0;for(let d=parseYmd(from28);ymd(d)<=asof;d=addDays(d,1)){if(getDay(ymd(d)).workout)done++}comp('VIT','Workouts done, last 4 weeks',lin(done/plan,0,1),`${done} of ${plan}`)}
-  // PHY
+  const mob=al.filter(x=>x.type==='mob').reduce((t,x)=>t+(x.min||0),0);
+  if(mob||started)comp('AGI','Mobility, avg per week (4 weeks)',lin(mob/4,0,60),`${Math.round(mob/4)} min`);
+  // VIT: body and fuel
   const lw=latestLog().filter(r=>r.waist&&r.date<=asof).slice(-1)[0];
-  if(lw&&prof.ht)comp('PHY','Waist ÷ height',lin(lw.waist/prof.ht,0.62,0.45),`${(lw.waist/prof.ht).toFixed(3)} (${lw.waist} cm)`);
-  // FUEL
-  const T=targets();let fd=0,pr=0,ad=0,cl=0;
-  for(let i=0;i<7;i++){const ds=ymd(addDays(parseYmd(asof),-i)),t=totals(ds);if(!t.n)continue;fd++;pr+=Math.min(1,t.p/T.p);if(t.kcal<=T.kcal*1.05&&t.kcal>=T.kcal*0.7)ad++;
+  if(lw&&prof.ht)comp('VIT','Waist ÷ height',lin(lw.waist/prof.ht,0.62,0.45),`${(lw.waist/prof.ht).toFixed(3)} (${lw.waist} cm)`);
+  const T=targets();let fd=0,pr=0,ad=0,cl=0,wd=0,wsum=0;
+  for(let i=0;i<7;i++){const ds=ymd(addDays(parseYmd(asof),-i));if(hasData(ds)){wd++;wsum+=Math.min(1,(getDay(ds).water||0)/(waterL()*1000))}const t=totals(ds);if(!t.n)continue;fd++;pr+=Math.min(1,t.p/T.p);if(t.kcal<=T.kcal*1.05&&t.kcal>=T.kcal*0.7)ad++;
     if(!foodLog(ds).some(e=>{const f=food(e.f);return f&&['sugar','sweet','fried','alcohol'].includes(f.tag)}))cl++}
-  if(fd){comp('FUEL','Protein vs target',pr/fd*100,`${Math.round(pr/fd*100)}% avg`);comp('FUEL','Days on calorie target',ad/fd*100,`${ad} of ${fd} logged days`);comp('FUEL','Days with no sugar or fried food',cl/fd*100,`${cl} of ${fd}`)}
-  // DIS
+  if(fd){comp('VIT','Protein vs target',pr/fd*100,`${Math.round(pr/fd*100)}% avg`);comp('VIT','Days on calorie target',ad/fd*100,`${ad} of ${fd} logged days`);comp('VIT','Days with no sugar or fried food',cl/fd*100,`${cl} of ${fd}`)}
+  if(wd)comp('VIT','Water vs goal, 7 days',wsum/wd*100,`${Math.round(wsum/wd*100)}%`);
+  // DISC: showing up
   const st=parseYmd(prof.start);let qs=[],first=allDays()[0];
   for(let i=0;i<14;i++){const d=addDays(parseYmd(asof),-i),ds=ymd(d);if(d<st||!first||ds<first)continue;qs.push(hasData(ds)?dayScore(ds):0)}
-  if(qs.length)comp('DIS','Daily quests completed, 14 days',avgN(qs)*100,`${Math.round(avgN(qs)*100)}%`);
+  if(qs.length)comp('DISC','Daily quests completed, 14 days',avgN(qs)*100,`${Math.round(avgN(qs)*100)}%`);
+  const plan=plannedWorkouts(from28,asof);
+  if(plan>=3){let done=0;for(let d=parseYmd(from28);ymd(d)<=asof;d=addDays(d,1)){if(getDay(ymd(d)).workout)done++}comp('DISC','Gates cleared, last 4 weeks',lin(done/plan,0,1),`${done} of ${plan}`)}
+  let wq=0,wn=0;for(let k=1;k<=4;k++){const mon=ymd(addDays(mondayOf(parseYmd(asof)),-7*k));if(posOf(parseYmd(mon)).days<0)continue;const q=weeklyQuests(mon);wq+=q.filter(x=>x.done).length;wn+=q.length}
+  if(wn)comp('DISC','Weekly quests, last 4 weeks',wq/wn*100,`${wq} of ${wn}`);
   const out={};STATS.forEach(s=>{const cs=c[s.k]||[];out[s.k]={v:cs.length?Math.round(avgN(cs.map(x=>x.score))):null,cs}});return out;
 }
-const STATS=[{k:'STR',n:'Strength',hint:'Log sets in Plan and do a stat check.'},{k:'AGI',n:'Agility',hint:'Do a stat check: 2 km time and burpees.'},{k:'VIT',n:'Vitality',hint:'Plank, resting heart rate and finished workouts.'},
-  {k:'PHY',n:'Physique',hint:'Log your waist in the body log.'},{k:'FUEL',n:'Fuel',hint:'Log what you eat in Food.'},{k:'DIS',n:'Discipline',hint:'Tick your daily quests.'}];
+const STATS=[{k:'STR',n:'Strength',hint:'Log sets in a Gate and do a stat check.'},{k:'END',n:'Endurance',hint:'Log cardio, and do a stat check: 2 km time, plank, resting heart rate.'},
+  {k:'AGI',n:'Agility',hint:'Mark stretch / mobility done, and do burpees in a stat check.'},{k:'VIT',n:'Vitality',hint:'Log waist, food and water.'},{k:'DISC',n:'Discipline',hint:'Clear Gates and tick daily and weekly quests.'}];
 const statRank=v=>v==null?'–':v<15?'E':v<35?'D':v<55?'C':v<75?'B':v<90?'A':'S';
 function statSeries(){ // weekly snapshots, oldest → newest (8 points, last = today)
   const today=todayStr(),pts=[];for(let i=7;i>=1;i--){const end=ymd(addDays(mondayOf(new Date()),-7*(i-1)-1));pts.push(end)}pts.push(today);
@@ -1111,6 +1118,7 @@ const VLEVELS=[
  {h:'Weeks 3–6 · Build control',sets:'3 sets × 10 squeezes, hold 5 s, relax 5 s · then 10 quick flicks'},
  {h:'Week 7+ · Endurance',sets:'3 sets × 10 squeezes, hold 10 s, relax 10 s · then 20 quick flicks'}];
 function renderBodyCards(){
+  renderRoutines();
   renderCareCards();
   renderHealth();
   const lv=VLEVELS[vitalityLevel()];
@@ -1465,13 +1473,15 @@ function stepDone(k){const st=GT.steps[k];if(!st)return false;
   if(st.type==='cardio')return actLog().some(x=>x.id===`w:${GT.ds}:${st.key}`&&x.min>0);
   if(st.type==='text'&&st.bl.kind==='stretch')return actLog().some(x=>x.id===`m:${GT.ds}:${st.bl.label}`);
   return !!GT.done[k]}
-function saveRun(){S.set('gateRun',{ds:GT.ds,i:GT.i,done:GT.done,t0:GT.t0})}
+function saveRun(){S.set('gateRun',{ds:GT.ds,i:GT.i,done:GT.done,t0:GT.t0,rt:GT.rt||null})}
 
-function openGate(){
-  const now=new Date(),ds=ymd(now),p=posOf(now),sess=Plan.program(p.w,p.d),rec=getDay(ds);
-  if(sess.rest||(prof.asthma&&rec.breath==='r'))return;
-  const light=!!(prof.asthma&&rec.breath==='y'),run=S.get('gateRun',{}),same=run.ds===ds;
-  Object.assign(GT,{open:true,ds,p,sess,light,steps:gateSteps(sess,light),done:same?(run.done||{}):{},extra:{},t0:same&&run.t0?run.t0:Date.now(),xp0:xpTotal(),confirm:false});
+function openGate(rt){
+  const now=new Date(),ds=ymd(now),p=posOf(now),rec=getDay(ds),sess=rt?routineSession(rt):Plan.program(p.w,p.d);
+  if(prof.asthma&&rec.breath==='r'){toast('Breathing check is red today: no training. Rest and follow your asthma plan.');return}
+  if(sess.rest)return;
+  if(rt&&prof.asthma&&rec.breath==='y')toast('Yellow zone: keep it light, no heavy sets.');
+  const light=!rt&&!!(prof.asthma&&rec.breath==='y'),run=S.get('gateRun',{}),same=run.ds===ds&&(run.rt||null)===(rt?rt.id:null);
+  Object.assign(GT,{open:true,rt:rt?rt.id:null,ds,p,sess,light,steps:gateSteps(sess,light),done:same?(run.done||{}):{},extra:{},t0:same&&run.t0?run.t0:Date.now(),xp0:xpTotal(),confirm:false});
   GT.i=Math.max(0,Math.min(same?(run.i||0):0,GT.steps.length-1));
   let o=$('gatemode');
   if(!o){o=document.createElement('div');o.id='gatemode';o.className='gatemode';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');o.setAttribute('aria-label','Gate: workout mode');
@@ -1575,7 +1585,7 @@ function gCardioSave(patch){const st=GT.steps[GT.i],id=`w:${GT.ds}:${st.key}`;co
 
 function finishGate(){
   const ds=GT.ds,r=getDay(ds),mins=Math.max(1,Math.round((Date.now()-GT.t0)/60000));
-  if(!r.workout){r.workout={w:GT.p.w,d:GT.p.d,t:GT.light?'Light day':GT.sess.t,at:Date.now(),gate:true,min:mins};if(GT.light)r.q.light=true;setDay(ds,r)}
+  if(!r.workout){r.workout={w:GT.p.w,d:GT.p.d,t:GT.light?'Light day':GT.sess.t,at:Date.now(),gate:true,min:mins};if(GT.rt)r.workout.routine=GT.rt;if(GT.light)r.q.light=true;setDay(ds,r)}
   stopRest();S.del('gateRun');
   const gained=Math.max(0,xpTotal()-GT.xp0);
   let sets=0,vol=0;const prs=[];
@@ -1947,6 +1957,122 @@ function renderBadges(){
 document.addEventListener('click',e=>{const b=e.target.closest('[data-badge]');if(!b||b.getAttribute('aria-disabled'))return;const id=b.dataset.badge;
   S.set('title',S.get('title',null)===id?null:id);const nm=BADGES.find(x=>x[0]===id)[1];toast(S.get('title',null)?`Title worn: ${nm}`:'Title removed');buzz(10);renderBadges();header()});
 function titleName(){const id=S.get('title',null);if(!id||!S.get('badges',{})[id])return null;const b=BADGES.find(x=>x[0]===id);return b?b[1]:null}
+
+/* =================================================================
+   HUNTER PROFILE (v8.4) — rank roadmap, shadow rival, custom routines
+   New key: hunter:routines [{id,n,items:[[exKey,dose]]}]
+   ================================================================= */
+// Progress toward the next test from the newest data: last test entry, newer stat checks, body log.
+function latestRes(nr,lastT){const res={...(lastT?lastT.res:{})},since=lastT?lastT.date:'',m=measures(todayStr());
+  [['push','push'],['pull','pull'],['plank','plank']].forEach(([k,mk])=>{if(m[mk]&&m[mk].d>=since)res[k]=m[mk].v});
+  if(m.pace&&m.pace.d>=since)res.run=Math.round(m.pace.v*(TESTKM[nr]||2)*10)/10;
+  const l=latestLog(),w=l.filter(r=>r.waist).slice(-1)[0],b=l.filter(r=>r.wt).slice(-1)[0];if(w&&w.date>=since)res.waist=w.waist;if(b&&b.date>=since)res.wt=b.wt;
+  [['bbbench','bench5'],['squat','squat5'],['deadlift','dead5']].forEach(([hk,rk])=>{const h=hist(hk).filter(x=>x.date>=since);const best=h.flatMap(x=>x.sets.filter(s=>s.reps>=5).map(s=>s.kg||0));if(best.length)res[rk]=Math.max(res[rk]||0,...best)});
+  return res}/* ---------- rank roadmap E → S ---------- */
+function renderRoadmap(){
+  const el=$('rankcard');if(!el)return;
+  const r=earnedRank(),ri=RANKS.indexOf(r),nr=nextRank(),w=posOf(new Date()).w,tests=S.get('tests',[]);
+  const lastT=nr?tests.filter(t=>t.rank===nr).slice(-1)[0]:null,ev=nr?evalTest(nr,latestRes(nr,lastT)):[],met=ev.filter(x=>x.ok).length;
+  const stages=[...Plan.STAGES,{rank:'S',start:44,end:null,name:'S-Rank · Apex',goal:'Hold the look and keep raising your numbers.'}];
+  el.innerHTML=`<div class="wh"><h3 class="sub">Rank roadmap</h3><span class="cue">Week ${w}</span></div>
+   <ol class="road-v">${stages.map((s,i)=>{const state=i<ri?'done':i===ri?'cur':'lock';const nm=s.name.split(' · ')[1]||s.name;
+     const inWk=w>=s.start&&(!s.end||w<=s.end);
+     return `<li class="rm ${state}"><span class="rm-n" aria-hidden="true"><b>${s.rank}</b></span>
+      <div class="rm-b"><div class="rm-h"><b>${s.rank}-Rank · ${esc(nm)}</b><span class="cue">${s.end?`Weeks ${s.start}–${s.end}`:`Week ${s.start}+`}${inWk?' · now':''}</span></div>
+      ${state==='done'?'<span class="rm-st okc">Cleared</span>':state==='lock'?`<p class="cue">${esc(s.goal)}</p>`:
+       `<p class="cue">${esc(s.goal)}</p>${nr?`<div class="rm-next"><div class="wh"><span class="k">${nr}-Rank test · ${met} of ${ev.length} met</span><span class="cue">${s.end?(w<=s.end?`week ${s.end}${s.end-w>0?` · ${s.end-w} wk left`:' · this week'}`:'due now'):''}</span></div>
+         <div class="mtrack"><i style="width:${ev.length?met/ev.length*100:0}%"></i></div>
+         <ul class="reqs">${ev.map(c=>`<li class="${c.ok?'ok':''}"><span>${esc(c.l)}</span><b>${c.v!=null?c.v:'–'} <small>/ ${c.cmp==='<='?'≤':'≥'} ${c.t} ${c.u==='done'||c.u==='ratio'?'':c.u}</small></b></li>`).join('')}</ul>
+         <p class="cue">From your latest logs and stat checks. You rank up when you pass the test.</p><button type="button" class="ghost" data-goto-test>Take the ${nr}-Rank test</button></div>`:'<p class="okc">Top rank reached. Re-test every 3 months.</p>'}`}</div></li>`}).join('')}</ol>`;
+}
+document.addEventListener('click',e=>{if(!e.target.closest('[data-goto-test]'))return;const t=$('test-form');if(t){t.closest('.win').scrollIntoView({behavior:'smooth',block:'start'});const i=t.querySelector('input');if(i)setTimeout(()=>i.focus({preventScroll:true}),400)}});
+
+/* ---------- shadow rival: you now vs you 4 weeks ago ---------- */
+function streakAsOf(ds){let d=parseYmd(ds);if(dayScore(ds)<0.8)d=addDays(d,-1);return runBack(d)}
+function rivalRows(){
+  const today=todayStr(),ago=ymd(addDays(new Date(),-28)),n=statsAt(today),a=statsAt(ago),rows=[];
+  const pw=s=>{const v=STATS.map(x=>s[x.k].v).filter(x=>x!=null);return v.length?Math.round(avgN(v)):null};
+  rows.push({l:'Power level',now:pw(n),then:pw(a),hi:true});
+  STATS.forEach(s=>rows.push({l:`${s.k} · ${s.n}`,now:n[s.k].v,then:a[s.k].v,hi:true}));
+  const atLog=(k,ds)=>{const r=latestLog().filter(x=>x[k]&&x.date<=ds).slice(-1)[0];return r?r[k]:null};
+  rows.push({l:'Waist',now:atLog('waist',today),then:atLog('waist',ago),hi:false,u:'cm'});
+  rows.push({l:'Body weight',now:atLog('wt',today),then:atLog('wt',ago),hi:prof.goal==='strength'?null:false,u:'kg'});
+  const vol=end=>{const from=ymd(addDays(parseYmd(end),-6));let v=0;histKeys().forEach(k=>hist(k).forEach(x=>{if(x.date>=from&&x.date<=end)v+=x.sets.reduce((s,y)=>s+(y.kg||0)*(y.reps||0),0)}));return v?Math.round(v):null};
+  rows.push({l:'Volume, 7 days',now:vol(today),then:vol(ago),hi:true,u:'kg'});
+  const q7=end=>{const s=[];for(let i=0;i<7;i++){const ds=ymd(addDays(parseYmd(end),-i));if(posOf(parseYmd(ds)).days>=0)s.push(hasData(ds)?dayScore(ds):0)}return s.length?Math.round(avgN(s)*100):null};
+  rows.push({l:'Quests, 7 days',now:q7(today),then:q7(ago),hi:true,u:'%'});
+  rows.push({l:'Streak',now:streakAsOf(today),then:posOf(parseYmd(ago)).days>=0?streakAsOf(ago):null,hi:true,u:'days'});
+  return rows.map(r=>{const c=r.now!=null&&r.then!=null&&r.hi!=null&&r.now!==r.then;return {...r,win:c?(r.hi?r.now>r.then:r.now<r.then):null}});
+}
+const RIVAL_SVG=`<svg viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,3 58,18 58,46 32,61 6,46 6,18" fill="#0b0f1d" stroke="#3a2a66" stroke-width="2"/><circle cx="32" cy="24" r="8" fill="#241a44"/><path d="M18 50c2-10 8-14 14-14s12 4 14 14z" fill="#241a44"/><circle cx="29" cy="23" r="1.6" fill="#8B5CFF"/><circle cx="35" cy="23" r="1.6" fill="#8B5CFF"/></svg>`;
+function renderRival(){
+  const el=$('rival');if(!el)return;
+  if(posOf(addDays(new Date(),-28)).days<0){el.innerHTML=`<div class="wh"><h3 class="sub">Shadow rival</h3></div><div class="rival-h">${RIVAL_SVG}<p class="cue">Your rival is <b>you, 4 weeks ago</b>. It appears once you've been on the plan for 4 weeks (from ${ymd(addDays(mondayOf(parseYmd(prof.start)),28))}).</p></div>`;return}
+  const rows=rivalRows(),dec=rows.filter(r=>r.win!=null),won=dec.filter(r=>r.win).length;
+  const f=(v,u)=>v==null?'–':`${typeof v==='number'?v.toLocaleString('en-IN'):v}${u&&u!=='%'?' '+u:u==='%'?'%':''}`;
+  el.innerHTML=`<div class="wh"><h3 class="sub">Shadow rival</h3><span class="cue">you vs you, 4 weeks ago</span></div>
+   <div class="rival-h">${RIVAL_SVG}<div><b class="rival-v ${dec.length&&won>dec.length/2?'okc':dec.length?'warnc':''}">${dec.length?`You win ${won} of ${dec.length}`:'Not enough data yet'}</b>
+    <p class="cue">${!dec.length?'Log workouts, food, body and quests; the duel fills in as data arrives.':won>dec.length/2?'Your past self is falling behind. Keep it that way.':'Your past self is ahead. Pick one row and beat it this week.'}</p></div></div>
+   <div class="rl-t" role="table" aria-label="You now versus 4 weeks ago"><div class="rl-r hd" role="row"><span role="columnheader"></span><span role="columnheader">Then</span><span role="columnheader">Now</span></div>
+   ${rows.map(r=>`<div class="rl-r${r.win===true?' w':r.win===false?' l':''}" role="row"><span role="rowheader">${esc(r.l)}</span><span role="cell">${f(r.then,r.u)}</span><span role="cell"><b>${f(r.now,r.u)}</b>${r.win===true?' <i aria-label="better">▲</i>':r.win===false?' <i aria-label="worse">▼</i>':''}</span></div>`).join('')}</div>`;
+}
+
+/* ---------- custom routines ---------- */
+function routines(){return S.get('routines',[])}
+function kindOf(k){return TIMED_CARDIO.includes(k)?'cardio':isCoreKey(k)?'core':'strength'}
+function defDose(k){const e=EX[k]||{};if(kindOf(k)==='cardio')return '20 min';if(/plank|hold|hollow/i.test(k+' '+(e.n||'')))return '3 × 30–60 s';return kindOf(k)==='core'?'3 × 12–15':'3 × 8–12'}
+function routineSession(rt){
+  const blocks=[{kind:'warm',label:'Warm-up',min:8,text:'5 min easy cardio, then joint circles and 1–2 light sets of your first exercise.'}];
+  rt.items.forEach(([k,d])=>{const kd=kindOf(k);blocks.push({kind:kd,label:rt.n,min:kd==='cardio'?(parseInt(d)||20):Math.round(setsIn(d)*2.5),items:[[k,d]],how:kd==='core'?'45 s rest.':REST_NOTE_C})});
+  return {t:rt.n,blocks,custom:true};
+}
+const REST_NOTE_C='Rest 75–90 s. Stay in the rep range; when every set hits the top, add 2.5 kg next time.';
+let rtEdit=null,rtQ='',rtDel=null;
+function renderRoutines(){
+  const el=$('routines');if(!el)return;const list=routines();
+  if(rtEdit){
+    const it=rtEdit.items,q=rtQ.trim().toLowerCase();
+    const res=q.length<2?[]:Object.entries(EX).map(([k,e])=>{const n=e.n.toLowerCase();return [k,e,n.startsWith(q)?3:n.includes(q)?2:e.m.toLowerCase().includes(q)?1:0]}).filter(x=>x[2]).sort((a,b)=>b[2]-a[2]).slice(0,8);
+    el.innerHTML=`<div class="wh"><h3 class="sub">${rtEdit.id?'Edit routine':'New routine'}</h3></div>
+     <label class="gs-f rt-name"><span>Name</span><input id="rt-n" maxlength="30" value="${esc(rtEdit.n)}" placeholder="e.g. Hotel room workout"></label>
+     <ol class="rt-items">${it.map(([k,d],i)=>{const e=EX[k],cardio=kindOf(k)==='cardio',m=/^(\d+) × (\d+)(?:–(\d+))?( s)?/.exec(d)||[];
+       return `<li><div class="rt-top"><b>${i+1}. ${esc(e?e.n:k)}</b><span class="rt-mv"><button type="button" class="ph-ic" data-rtup="${i}" aria-label="Move up" ${i?'':'disabled'}>↑</button><button type="button" class="ph-ic" data-rtdn="${i}" aria-label="Move down" ${i<it.length-1?'':'disabled'}>↓</button><button type="button" class="ph-ic" data-rtrm="${i}" aria-label="Remove ${esc(e?e.n:k)}">✕</button></span></div>
+        ${cardio?`<div class="rt-dose"><label class="gs-f"><span>Minutes</span><input type="number" inputmode="numeric" min="1" value="${parseInt(d)||20}" data-rtd="${i}" data-f="min"></label></div>`
+         :`<div class="rt-dose"><label class="gs-f"><span>Sets</span><input type="number" inputmode="numeric" min="1" max="10" value="${m[1]||3}" data-rtd="${i}" data-f="sets"></label>
+          <label class="gs-f"><span>${m[4]?'From s':'Reps from'}</span><input type="number" inputmode="numeric" min="1" value="${m[2]||8}" data-rtd="${i}" data-f="lo"></label>
+          <label class="gs-f"><span>${m[4]?'To s':'Reps to'}</span><input type="number" inputmode="numeric" min="1" value="${m[3]||m[2]||12}" data-rtd="${i}" data-f="hi"></label></div>`}</li>`}).join('')}</ol>
+     ${it.length?'':'<p class="cue">No exercises yet. Search below and tap to add.</p>'}
+     <label class="gs-f"><span>Add exercise</span><input id="rt-q" type="search" autocomplete="off" placeholder="Search: curl, squat, plank, cycle…" value="${esc(rtQ)}"></label>
+     ${res.length?`<ul class="rt-res">${res.map(([k,e])=>`<li><button type="button" data-rtadd="${k}"><span><b>${esc(e.n)}</b><small>${esc(e.m)}</small></span><em>+</em></button></li>`).join('')}</ul>`:q.length>=2?'<p class="cue">No match.</p>':''}
+     <div class="t-actions left" style="margin-top:12px"><button type="button" class="primary" data-rt="save">Save routine</button><button type="button" class="ghost" data-rt="cancel">Cancel</button></div>
+     <p class="cue" id="rt-msg" role="status"></p>`;
+    return;
+  }
+  el.innerHTML=`<div class="wh"><h3 class="sub">My routines</h3><span class="cue">${list.length} saved</span></div>
+   <p class="cue">Build your own workout (travel, home, extra arms day…) and run it as a Gate. Logs and records work the same.</p>
+   ${list.map(rt=>{const mins=routineSession(rt).blocks.reduce((a,b)=>a+b.min,0);return `<div class="rt"><div><b>${esc(rt.n)}</b><span class="cue">${rt.items.length} exercise${rt.items.length===1?'':'s'} · about ${mins} min · ${esc(rt.items.slice(0,3).map(([k])=>EX[k]?EX[k].n:k).join(', '))}${rt.items.length>3?'…':''}</span></div>
+     <div class="rt-btns"><button type="button" class="primary" data-rtrun="${rt.id}">Run as Gate</button><button type="button" class="ghost" data-rtedit="${rt.id}">Edit</button><button type="button" class="ghost${rtDel===rt.id?' warn':''}" data-rtdel="${rt.id}">${rtDel===rt.id?'Delete?':'Delete'}</button></div></div>`}).join('')}
+   <button type="button" class="ghost rt-new" data-rt="new">+ New routine</button>`;
+}
+function rtDose(i){const li=$('routines').querySelectorAll('.rt-items>li')[i];if(!li)return;const g=f=>{const x=li.querySelector(`[data-f=${f}]`);return x?Math.max(1,parseInt(x.value)||0):null};
+  const k=rtEdit.items[i][0];if(kindOf(k)==='cardio'){rtEdit.items[i][1]=`${g('min')||20} min`;return}
+  const s=g('sets')||3,lo=g('lo')||8,hi=Math.max(lo,g('hi')||lo),secs=/ s$/.test(rtEdit.items[i][1]);rtEdit.items[i][1]=`${s} × ${lo}${hi>lo?'–'+hi:''}${secs?' s':''}`}
+$('routines')&&$('routines').addEventListener('click',e=>{
+  const b=e.target.closest('[data-rt],[data-rtadd],[data-rtrm],[data-rtup],[data-rtdn],[data-rtrun],[data-rtedit],[data-rtdel]');if(!b)return;const d=b.dataset;
+  if(rtEdit){const n=$('rt-n');if(n)rtEdit.n=n.value;rtEdit.items.forEach((_,i)=>rtDose(i))}
+  if(d.rt==='new'){rtEdit={id:null,n:'',items:[]};rtQ='';rtDel=null}
+  else if(d.rt==='cancel'){rtEdit=null}
+  else if(d.rt==='save'){const nm=(rtEdit.n||'').trim();if(!nm){$('rt-msg').textContent='Give the routine a name.';$('rt-n').focus();return}if(!rtEdit.items.length){$('rt-msg').textContent='Add at least one exercise.';return}
+    const all=routines();const o={id:rtEdit.id||Date.now().toString(36),n:nm.slice(0,30),items:rtEdit.items};const i=all.findIndex(x=>x.id===o.id);if(i>=0)all[i]=o;else all.push(o);S.set('routines',all);rtEdit=null;toast(`Routine saved: ${o.n}`);buzz(15)}
+  else if(d.rtadd){rtEdit.items.push([d.rtadd,defDose(d.rtadd)]);rtQ='';buzz(8)}
+  else if(d.rtrm){rtEdit.items.splice(+d.rtrm,1)}
+  else if(d.rtup){const i=+d.rtup;[rtEdit.items[i-1],rtEdit.items[i]]=[rtEdit.items[i],rtEdit.items[i-1]]}
+  else if(d.rtdn){const i=+d.rtdn;[rtEdit.items[i+1],rtEdit.items[i]]=[rtEdit.items[i],rtEdit.items[i+1]]}
+  else if(d.rtedit){const rt=routines().find(x=>x.id===d.rtedit);rtEdit=JSON.parse(JSON.stringify(rt));rtQ='';rtDel=null}
+  else if(d.rtdel){if(rtDel!==d.rtdel){rtDel=d.rtdel}else{S.set('routines',routines().filter(x=>x.id!==d.rtdel));rtDel=null;toast('Routine deleted')}}
+  else if(d.rtrun){const rt=routines().find(x=>x.id===d.rtrun);if(rt)openGate(rt);return}
+  renderRoutines();if(d.rtadd){const q=$('rt-q');if(q)q.focus()}});
+$('routines')&&$('routines').addEventListener('input',e=>{if(e.target.id==='rt-q'){rtQ=e.target.value;const pos=e.target.selectionStart;if(rtEdit){const n=$('rt-n');if(n)rtEdit.n=n.value;rtEdit.items.forEach((_,i)=>rtDose(i))}renderRoutines();const q=$('rt-q');q.focus();try{q.setSelectionRange(pos,pos)}catch(x){}}});
 
 /* =================================================================
    GOAL + LAZY FOOD DATABASE

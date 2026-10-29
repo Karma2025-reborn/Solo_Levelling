@@ -34,6 +34,13 @@ no backend, no tracking. Hosted on GitHub Pages from repo `Karma2025-reborn/Solo
   `hunter:title`, and `day.pen` `{walk,squat}`. Streak rules: `streakCalc`/`runBack`/`isFrozen` — a day counts
   at ≥ 80 % quests; rest days, asthma-red days and forgiven days are frozen (skip, don't break). XP adds
   `weeklyQuests(monday)` for every week since `prof.start`. `dayScore` is cached per storage version (`SV`).
+- Profile (v8.4, "HUNTER PROFILE" section of `js/app.js`): stats are `STATS` = STR · END · AGI · VIT · DISC,
+  computed in `statsAt(asof)` (nothing stored). Roadmap uses `latestRes()` (last test + newer stat checks +
+  body log + lift history) for *progress only*; rank still changes only via the test form. Rival compares
+  `statsAt(today)` with `statsAt(today−28)`. Custom routines: `hunter:routines` `[{id,n,items:[[exKey,dose]]}]`,
+  doses use the plan format (`3 × 8–12`, `3 × 30–60 s`, `20 min`); `openGate(rt)` builds blocks with
+  `routineSession()`; `gateRun.rt` and `day.workout.routine` record which routine ran. CSS: roadmap `.rm*`,
+  rival `.rl-*` (`.rv` is taken by the radar).
 - "Hunter" as the *player's* title (e.g. "D-Rank Hunter", "Hunter stats") is game flavour, not the app name.
 - All art is original SVG drawn in code. No anime characters, likenesses, quotes or catchphrases.
   Mentors are our own: Kael, Garo, Sora, Ryn (`js/hud.js`).

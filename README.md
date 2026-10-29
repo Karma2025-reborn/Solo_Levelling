@@ -1,4 +1,4 @@
-# ARETE v8.3 · Level up in real life
+# ARETE v8.4 · Level up in real life
 
 *Arete* is Greek for excellence. ARETE (formerly Hunter System) is an E → S rank transformation app that installs on your phone and works offline. Your data never leaves the phone.
 
@@ -11,6 +11,18 @@
 | **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
 | **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
 | **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
+
+## v8.4: Hunter profile
+- **Five stats**, scored 0–100 from your real logs, on a radar (now vs 4 weeks ago):
+  - **STR** Strength: push-ups, pull-ups, lift maxes ÷ body weight, lift progress.
+  - **END** Endurance: run pace, plank, resting heart rate, cardio minutes per week.
+  - **AGI** Agility: burpees, mobility minutes per week.
+  - **VIT** Vitality: waist ÷ height, protein, calorie target, clean days, water.
+  - **DISC** Discipline: daily quests, Gates cleared, weekly quests.
+  (They replace the old six: PHY and FUEL are now part of VIT. Nothing stored changed.)
+- **Rank roadmap** (Stats → Status): E → S as a vertical timeline. Cleared ranks are green, your current rank glows and shows the next rank test: each requirement against your latest logs and stat checks, how many are met, and weeks left. You still rank up only by passing the test (button jumps to the test form).
+- **Shadow rival**: you vs you 4 weeks ago: power level, all five stats, waist, weight, 7-day volume, quest rate and streak, with who wins each row. Appears once you're 4 weeks into the plan.
+- **My routines** (top of Body): build your own workout (name, search exercises, sets and rep range or seconds, reorder), save it, and **Run as Gate**. Logs, records, rest timer and the Gate-cleared screen work the same. On a rest day the Gate card offers your routines.
 
 ## v8.3: Quests and habits
 - **Weekly quests** (Today, under daily quests): Clear 5 Gates (+150 XP), log food on 5 days, hit your protein on 4 days, 150 min cardio, weigh-in with waist (+50), 8 hours on the Mission (+100 each). They track themselves from your logs and reset every Monday. Past weeks count too.
