@@ -1,4 +1,4 @@
-/* Hunter System — the 72-week E → S program.
+/* ARETE — the 72-week E → S program.
    program(week, dayIndex) returns the session for that day (0 = Monday).
    Each block: {kind, label, min, how, text, items:[[exerciseKey, dose]]}.
    A dose starting with "N × …" is loggable as N sets. */

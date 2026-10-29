@@ -1,6 +1,6 @@
-# Hunter System v7.0
+# ARETE v7.1 · Level up in real life
 
-A 72-week E → S rank transformation app that installs on your phone and works offline.
+*Arete* is Greek for excellence. ARETE (formerly Hunter System) is an E → S rank transformation app that installs on your phone and works offline. Your data never leaves the phone.
 
 | Tab | What it does |
 |---|---|
@@ -11,6 +11,13 @@ A 72-week E → S rank transformation app that installs on your phone and works 
 | **Status** | Your rank and what the next rank needs, streak, workout count, a 12-week activity map, the rank test form, body log (weight and waist charts), and estimated 1-rep-max charts for your main lifts |
 | **Timer** | Rest timer with presets, "Set done → start rest", and a set counter. Beeps and vibrates |
 | **Settings** | Weight, height, start date, diet (veg / veg + egg / non-veg), gym time (morning / evening), supplement reminders, notifications, calendar reminders, backup |
+
+## v7.1: ARETE
+- **New name and icon**: ARETE, with an original glowing-hexagon "A" sigil (app icon, maskable icon, favicon and the app bar).
+- **Launch screen**: the sigil draws in, then "ARETE · Level up in real life" (under 1.2 s; skipped when "reduce motion" is on, and on reloads in the same session).
+- **Reliable updates**: when a new version is online, a **New version available · Tap to update** banner appears. Tap it and the app reloads on the new version. No more "close and reopen twice".
+- The offline cache now loads each file on its own (one missing file can't block an update) and always fetches fresh copies, so a phone can't get stuck on an old version.
+- Your data is untouched: same storage, and old `hunter-backup-….json` files still restore. New backups are named `arete-backup-….json`.
 
 ## v7.0: new look, mentors, start fresh
 - **HUD redesign**: notched glass System windows with glowing edges, hexagon rank badge, mana-particle background, quest-progress ring with water / protein / calories / streak, System-style notifications, LEVEL UP animation, smooth tab transitions.
@@ -134,8 +141,10 @@ This is a new app with a new name and new storage. Your v1 (E-Rank Quest) ticks 
 ## Updating the app later
 
 1. Change files in VS Code (test with **Live Server**: right-click `index.html` → Open with Live Server).
-2. In `sw.js` bump `VERSION`, for example `hunter-v2.0.0` → `hunter-v2.0.1`.
-3. Upload the changed files to GitHub. On the phone, close and reopen the app twice.
+2. In `sw.js` bump `VERSION`, for example `arete-v7.1.0` → `arete-v7.1.1`, and the version text at the bottom of Settings in `index.html`.
+3. Push to GitHub. Open the app on the phone: a **New version available** banner appears within a minute or so. Tap it.
+
+The app is served from the GitHub repo `Solo_Levelling`, so its link stays `https://karma2025-reborn.github.io/Solo_Levelling/`. Renaming the repo would change that link: the installed app would stop updating, you would have to install it again from the new link, and its data would **not** carry over (data is stored per link), so you would need **Save backup file** first and **Restore from file** after.
 
 ## Your data
 

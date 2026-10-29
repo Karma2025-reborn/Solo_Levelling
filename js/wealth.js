@@ -1,4 +1,4 @@
-/* Hunter System — WEALTH system data: ranks to ₹100 Cr in 5 years, missions, categories.
+/* ARETE — WEALTH system data: ranks to ₹100 Cr in 5 years, missions, categories.
    Not financial advice. Verify tax, legal and investment decisions with a qualified CA / adviser. */
 (function(){
 const CR=1e7,L=1e5;

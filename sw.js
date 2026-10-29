@@ -1,11 +1,28 @@
-/* Hunter System service worker: makes the app work offline.
-   After changing any file, bump VERSION so phones fetch the new copy. */
-const VERSION = 'hunter-v7.0.0';
+/* ARETE service worker: makes the app work offline.
+   After changing any file, bump VERSION so phones fetch the new copy.
+   Update flow: a new version installs in the background and waits. The page
+   shows "New version available"; tapping it sends SKIP_WAITING, the new worker
+   takes over and the page reloads once. */
+const VERSION = 'arete-v7.1.0';
 const SHELL = ['./', 'index.html', 'css/app.css', 'css/hud.css', 'js/hud.js', 'fonts/chakra-petch-latin-500-normal.woff2', 'fonts/chakra-petch-latin-600-normal.woff2', 'fonts/chakra-petch-latin-700-normal.woff2', 'fonts/barlow-latin-400-normal.woff2', 'fonts/barlow-latin-500-normal.woff2', 'fonts/barlow-latin-600-normal.woff2', 'js/figures.js', 'js/exercises.js', 'js/program.js', 'js/diet.js', 'js/foods_mh.js', 'js/foods_indb.js', 'js/foods.js', 'js/mind.js', 'js/wealth.js', 'js/mission.js', 'js/app.js', 'manifest.json',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png'];
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/favicon.svg'];
 
+// Cache each file on its own so one missing file can't block an update.
+// cache:'reload' skips the browser's HTTP cache, so the new version never
+// stores stale copies of the old files.
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION).then(c => Promise.all(SHELL.map(u =>
+    fetch(new Request(u, { cache: 'reload' }))
+      .then(r => { if (r.ok) return c.put(u, r); })
+      .catch(() => {}))))
+    // Pages from before v7.1 have no update banner, so take over at once
+    // when upgrading from an old 'hunter-' cache. Later updates wait for a tap.
+    .then(() => caches.keys())
+    .then(keys => { if (!keys.some(k => k.startsWith('arete-') && k !== VERSION)) return self.skipWaiting(); }));
+});
+
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
@@ -18,20 +35,12 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  // Google Fonts: serve from cache, refresh in the background
-  if (url.hostname.endsWith('fonts.googleapis.com') || url.hostname.endsWith('fonts.gstatic.com')) {
-    e.respondWith(caches.open(VERSION + '-fonts').then(async c => {
-      const hit = await c.match(req);
-      const net = fetch(req).then(r => { c.put(req, r.clone()); return r; }).catch(() => hit);
-      return hit || net;
-    }));
-    return;
-  }
   if (url.origin !== location.origin) return;
   // App files: cache first, fall back to network, then to the cached home page
   e.respondWith(caches.match(req, { ignoreSearch: true })
     .then(hit => hit || fetch(req).then(r => {
-      const copy = r.clone(); caches.open(VERSION).then(c => c.put(req, copy)); return r;
+      if (r.ok) { const copy = r.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
+      return r;
     }))
     .catch(() => caches.match('index.html')));
 });

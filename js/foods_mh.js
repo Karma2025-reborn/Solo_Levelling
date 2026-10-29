@@ -1,4 +1,4 @@
-/* Hunter System — Maharashtrian & Kolhapuri home food (estimates per serving, home-style oil).
+/* ARETE — Maharashtrian & Kolhapuri home food (estimates per serving, home-style oil).
    Row: key, name, serving, grams, kcal, protein, carbs, fat, fibre, aliases, tag. */
 window.FOODS_MH=[
 /* ---- bhakri, poli & breads ---- */

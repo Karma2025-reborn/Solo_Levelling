@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Hunter System</title>
-<meta name="description" content="E to S rank transformation: 72-week plan, exercise guide, workout log, meals, water and reminders.">
-<meta name="theme-color" content="#060A13">
+<title>ARETE · Level up in real life</title>
+<meta name="description" content="ARETE: level up in real life. E to S rank training plan, exercise guide, workout log, meals, water and reminders.">
+<meta name="theme-color" content="#0a0c14">
+<meta name="application-name" content="ARETE">
+<meta name="apple-mobile-web-app-title" content="ARETE">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,13 +18,27 @@
 <link rel="preload" href="fonts/barlow-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/app.css">
 <link rel="stylesheet" href="css/hud.css">
+<script>try{if(sessionStorage.getItem('arete-splash'))document.documentElement.classList.add('nosplash');sessionStorage.setItem('arete-splash','1')}catch(e){}</script>
 </head>
 <body>
+<!-- ARETE sigil: gradients + symbol, reused by the app bar and splash -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <linearGradient id="ag-e" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4FD8FF"/><stop offset="1" stop-color="#8B5CFF"/></linearGradient>
+  <linearGradient id="ag-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E8FBFF"/><stop offset=".55" stop-color="#4FD8FF"/><stop offset="1" stop-color="#8B5CFF"/></linearGradient>
+  <symbol id="sigil" viewBox="0 0 100 100"><polygon points="50,5 89,27.5 89,72.5 50,95 11,72.5 11,27.5" fill="none" stroke="url(#ag-e)" stroke-width="5"/><path d="M50 22L71 75H61L50 47L39 75H29Z" fill="url(#ag-a)"/><path d="M44.9 60H55.1L57.5 66H42.5Z" fill="url(#ag-a)"/><path d="M50 80l3 3-3 3-3-3z" fill="#4FD8FF"/></symbol>
+</defs></svg>
+
+<div id="splash" aria-hidden="true">
+  <svg viewBox="0 0 100 100" class="sp-sig"><polygon class="sp-hex" pathLength="100" points="50,5 89,27.5 89,72.5 50,95 11,72.5 11,27.5" fill="none" stroke="url(#ag-e)" stroke-width="4"/><g class="sp-a"><path d="M50 22L71 75H61L50 47L39 75H29Z" fill="url(#ag-a)"/><path d="M44.9 60H55.1L57.5 66H42.5Z" fill="url(#ag-a)"/><path d="M50 80l3 3-3 3-3-3z" fill="#4FD8FF"/></g></svg>
+  <b>ARETE</b><span>Level up in real life</span>
+</div>
+
 <div id="hud-bg" aria-hidden="true"></div>
 
 <header class="appbar">
   <div class="rank" aria-label="Current rank"><span id="rank">E</span></div>
-  <div class="appbar-t"><b id="appname">Hunter System</b><span id="ranksub">Week 1 · E-Rank</span></div>
+  <svg class="sigil" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><use href="#sigil"/></svg>
+  <div class="appbar-t"><b id="appname">ARETE</b><span id="ranksub">Week 1 · E-Rank</span></div>
   <div class="lv"><span class="k">Level</span><b id="lv">1</b></div>
   <button type="button" id="install" class="ghost small" hidden>Install</button>
   <button type="button" id="btn-settings" class="iconbtn" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg></button>
@@ -414,7 +431,7 @@
     </ul>
     <button type="button" id="reset" class="danger" style="margin-top:12px">Erase all progress</button>
   </section>
-  <p class="cue center">Hunter System · v7.0 · works offline once installed</p>
+  <p class="cue center">ARETE · Level up in real life · v7.1 · works offline once installed</p>
 </section>
 </div>
 

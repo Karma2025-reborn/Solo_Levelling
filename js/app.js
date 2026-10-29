@@ -1,4 +1,4 @@
-/* Hunter System — app logic: today, plan, tracking, status, timer, settings, reminders. */
+/* ARETE — app logic: today, plan, tracking, status, timer, settings, reminders. */
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
@@ -414,7 +414,7 @@ function reminderList(){
   const p=posOf(new Date());
   return Diet.timeline(prof.gym,0,prof.diet,false,waterL(),prof.supps).map(t=>({...t,
     title:t.type==='water'?`Water · ${t.ml} ml`:t.title,
-    body:t.type==='meal'?'Check today\'s meal in the Hunter app':(t.detail||(t.ml?`Drink ${t.ml} ml`:''))}));
+    body:t.type==='meal'?'Check today\'s meal in ARETE':(t.detail||(t.ml?`Drink ${t.ml} ml`:''))}));
 }
 function gcalUrl(r){
   const d=new Date(),[h,m]=r.time.split(':').map(Number);d.setHours(h,m,0,0);const e=new Date(d.getTime()+(r.type==='gym'?75:10)*60000);
@@ -425,20 +425,20 @@ function gcalUrl(r){
 function renderGcal(){$('gcal').innerHTML=reminderList().map(r=>`<li><time>${r.time}</time><span>${esc(r.title)}</span><a href="${gcalUrl(r)}" target="_blank" rel="noopener">Add</a></li>`).join('')}
 $('ics').onclick=()=>{
   const start=new Date();const D=x=>`${x.getFullYear()}${String(x.getMonth()+1).padStart(2,'0')}${String(x.getDate()).padStart(2,'0')}`;
-  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Hunter System//EN','CALSCALE:GREGORIAN','X-WR-CALNAME:Hunter System','BEGIN:VTIMEZONE','TZID:Asia/Kolkata','BEGIN:STANDARD','DTSTART:19700101T000000','TZOFFSETFROM:+0530','TZOFFSETTO:+0530','TZNAME:IST','END:STANDARD','END:VTIMEZONE'];
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//ARETE//EN','CALSCALE:GREGORIAN','X-WR-CALNAME:ARETE','BEGIN:VTIMEZONE','TZID:Asia/Kolkata','BEGIN:STANDARD','DTSTART:19700101T000000','TZOFFSETFROM:+0530','TZOFFSETTO:+0530','TZNAME:IST','END:STANDARD','END:VTIMEZONE'];
   reminderList().forEach((r,i)=>{const [h,m]=r.time.split(':');const dur=r.type==='gym'?'PT75M':'PT10M';
     L.push('BEGIN:VEVENT',`UID:hunter-${r.id}-${i}@hunter.app`,`DTSTAMP:${D(start)}T000000Z`,`DTSTART;TZID=Asia/Kolkata:${D(start)}T${h}${m}00`,`DURATION:${dur}`,
       r.type==='gym'||r.id==='pg'?'RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA':'RRULE:FREQ=DAILY',`SUMMARY:${r.title.replace(/[,;]/g,' ')}`,`DESCRIPTION:${r.body.replace(/[,;]/g,' ')}`,
       'BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:${r.title.replace(/[,;]/g,' ')}`,'TRIGGER:PT0M','END:VALARM','END:VEVENT')});
   L.push('END:VCALENDAR');
-  download(new Blob([L.join('\r\n')],{type:'text/calendar'}),'hunter-reminders.ics');
+  download(new Blob([L.join('\r\n')],{type:'text/calendar'}),'arete-reminders.ics');
   $('notif-msg').textContent='Calendar file saved. Open it with your calendar app to import all reminders.';
 };
 $('notif').onclick=async()=>{
   if(!('Notification' in window)){$('notif-msg').textContent='This browser does not support notifications. Use the calendar options below.';return}
   const p=await Notification.requestPermission();
   $('notif-msg').textContent=p==='granted'?'Notifications on. They fire while the app is open or recently used.':'Notifications are blocked. Allow them in Chrome → Site settings, or use the calendar options.';
-  if(p==='granted')notify('Hunter System','Reminders are on. Arise.');
+  if(p==='granted')notify('ARETE','Reminders are on. Level up in real life.');
 };
 async function notify(title,body){
   try{const reg=await navigator.serviceWorker?.getRegistration();if(reg){reg.showNotification(title,{body,icon:'icons/icon-192.png',badge:'icons/icon-192.png',tag:title,vibrate:[200,100,200]});return}}catch(e){}
@@ -460,10 +460,10 @@ function checkReminders(){
 function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
 function allData(){const o={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(P))o[k]=localStorage.getItem(k)}}catch(e){}return o}
 setTimeout(()=>{try{initExport();initSwapFix();initReset()}catch(e){console.error(e)}},0);
-$('export').onclick=()=>{download(new Blob([JSON.stringify({app:'hunter',v:2,saved:new Date().toISOString(),data:allData()})],{type:'application/json'}),`hunter-backup-${todayStr()}.json`);$('backup-msg').textContent='Backup saved to your Downloads.'};
+$('export').onclick=()=>{download(new Blob([JSON.stringify({app:'hunter',v:2,saved:new Date().toISOString(),data:allData()})],{type:'application/json'}),`arete-backup-${todayStr()}.json`);$('backup-msg').textContent='Backup saved to your Downloads.'};
 $('import').onchange=async e=>{const f=e.target.files[0];if(!f)return;
   try{const j=JSON.parse(await f.text());if(j.app!=='hunter'||!j.data)throw 0;Object.entries(j.data).forEach(([k,v])=>{if(k.startsWith(P))localStorage.setItem(k,v)});$('backup-msg').textContent='Backup restored. Reloading…';setTimeout(()=>location.reload(),700)}
-  catch(err){$('backup-msg').textContent='That file is not a Hunter System backup. Choose a file named hunter-backup-….json.'}};
+  catch(err){$('backup-msg').textContent='That file is not an ARETE backup. Choose a file named arete-backup-….json (older hunter-backup-….json files work too).'}};
 $('reset').onclick=()=>{const b=$('reset');if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.textContent='Tap again to erase everything';setTimeout(()=>{b.dataset.confirm='';b.textContent='Erase all progress'},4000);return}
   Object.keys(allData()).forEach(k=>localStorage.removeItem(k));location.reload()};
 
@@ -1276,7 +1276,7 @@ function analysisData(days){
   const dates=dateRange(days),T=targets(),rows=dates.map(dayRow);
   const logged=rows.filter(r=>r.food_items>0),avg=k=>logged.length?Math.round(logged.reduce((s,r)=>s+r[k],0)/logged.length):null;
   const nowP=posOf(new Date());
-  return {app:'Hunter System',export:'analysis',version:'5.3',exported:new Date().toISOString(),period:{from:dates[0],to:dates[dates.length-1],days:dates.length},
+  return {app:'ARETE',export:'analysis',version:'5.3',exported:new Date().toISOString(),period:{from:dates[0],to:dates[dates.length-1],days:dates.length},
     profile:{age:prof.age,height_cm:prof.ht,weight_kg:prof.wt,diet:['veg','veg + egg','non-veg'][prof.diet]||prof.diet,gym_time:prof.gym,plan_start:prof.start,asthma_mode:!!prof.asthma,doctor_review_mode:!!prof.medHold},
     plan:{current_week:nowP.w,total_weeks:Plan.TOTAL,cut_check_week:26,stage:Plan.stageOf(nowP.w).name,earned_rank:earnedRank()},
     daily_targets:{kcal:T.kcal,protein_g:T.p,carbs_g:T.c,fat_g:T.f,fibre_g:T.fi,maintenance_kcal:T.tdee,water_l:waterL()},
@@ -1292,7 +1292,7 @@ function analysisData(days){
 }
 function summaryText(days){
   const d=analysisData(days),T=d.daily_targets;
-  const L=[`Hunter System export · ${d.period.from} to ${d.period.to} (${d.period.days} days)`,
+  const L=[`ARETE export · ${d.period.from} to ${d.period.to} (${d.period.days} days)`,
    `Me: ${d.profile.age||'?'} y, ${d.profile.height_cm} cm, ${d.profile.weight_kg} kg, ${d.profile.diet}, asthma mode ${d.profile.asthma_mode?'on':'off'}. Week ${d.plan.current_week} of ${d.plan.total_weeks}, ${d.plan.stage}, rank ${d.plan.earned_rank}.`,
    `Targets: ${T.kcal} kcal, protein ${T.protein_g} g, carbs ${T.carbs_g} g, fat ${T.fat_g} g, fibre ${T.fibre_g} g, water ${T.water_l} L.`,
    `Average on ${d.averages_on_logged_days.days_with_food_logged} logged days: ${d.averages_on_logged_days.kcal??'–'} kcal, protein ${d.averages_on_logged_days.protein_g??'–'} g, carbs ${d.averages_on_logged_days.carbs_g??'–'} g, fat ${d.averages_on_logged_days.fat_g??'–'} g, fibre ${d.averages_on_logged_days.fibre_g??'–'} g.`,'',
@@ -1316,8 +1316,8 @@ function initExport(){
   const el=$('exportwin');if(!el)return;
   const msg=t=>{$('ex-msg').textContent=t};
   const days=()=>+$('ex-range').value;
-  $('ex-file').onclick=()=>shareOrDownload(new Blob([JSON.stringify(analysisData(days()),null,1)],{type:'application/json'}),`hunter-analysis-${todayStr()}.json`,msg);
-  $('ex-csv').onclick=()=>shareOrDownload(new Blob(['﻿'+csvOf(dateRange(days()).map(dayRow))],{type:'text/csv'}),`hunter-daily-${todayStr()}.csv`,msg);
+  $('ex-file').onclick=()=>shareOrDownload(new Blob([JSON.stringify(analysisData(days()),null,1)],{type:'application/json'}),`arete-analysis-${todayStr()}.json`,msg);
+  $('ex-csv').onclick=()=>shareOrDownload(new Blob(['﻿'+csvOf(dateRange(days()).map(dayRow))],{type:'text/csv'}),`arete-daily-${todayStr()}.csv`,msg);
   $('ex-copy').onclick=async()=>{const t=summaryText(days());try{await navigator.clipboard.writeText(t);msg('Summary copied. Paste it into your chat with Claude.')}catch(e){const ta=$('ex-text');ta.hidden=false;ta.value=t;ta.select();msg('Select all and copy the text below.')}};
 }
 
@@ -1350,7 +1350,7 @@ function initReset(){
   const mon=ymd(mondayOf(new Date()));$('reset-start').value=mon;
   b.onclick=()=>{
     if($('reset-confirm').value.trim().toUpperCase()!=='RESET'){$('reset-msg').textContent='Type RESET in the box first.';return}
-    try{download(new Blob([JSON.stringify({app:'hunter',v:2,saved:new Date().toISOString(),data:allData()})],{type:'application/json'}),`hunter-before-reset-${todayStr()}.json`)}catch(e){}
+    try{download(new Blob([JSON.stringify({app:'hunter',v:2,saved:new Date().toISOString(),data:allData()})],{type:'application/json'}),`arete-before-reset-${todayStr()}.json`)}catch(e){}
     const keep=S.get('profile',{});const del=[];
     for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(P)||k.startsWith('erank:'))del.push(k)}
     del.forEach(k=>localStorage.removeItem(k));
@@ -1377,7 +1377,24 @@ function refresh(){header();const v=S.get('view','today');if(v==='today')renderT
 let deferred=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('install').hidden=false});
 $('install').onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;$('install').hidden=true};
-if('serviceWorker' in navigator&&location.protocol!=='file:')window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+/* ---------- splash: CSS plays it (under 1.2 s); remove it afterwards ---------- */
+setTimeout(()=>{const s=$('splash');if(s)s.remove()},1200);
+
+/* ---------- service worker + "new version" banner ---------- */
+function updateBanner(sw){
+  let b=$('upd');if(!b){b=document.createElement('button');b.type='button';b.id='upd';b.className='updbar';b.innerHTML='<b>New version available</b><span>Tap to update</span>';document.body.appendChild(b)}
+  b.hidden=false;b.onclick=()=>{b.disabled=true;b.querySelector('span').textContent='Updating…';sw.postMessage({type:'SKIP_WAITING'})};
+}
+if('serviceWorker' in navigator&&location.protocol!=='file:')window.addEventListener('load',()=>{
+  const hadCtrl=!!navigator.serviceWorker.controller;let reloading=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!hadCtrl||reloading)return;reloading=true;location.reload()});
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    const watch=sw=>{if(!sw)return;sw.addEventListener('statechange',()=>{if(sw.state==='installed'&&navigator.serviceWorker.controller)updateBanner(sw)})};
+    if(reg.waiting&&navigator.serviceWorker.controller)updateBanner(reg.waiting);
+    reg.addEventListener('updatefound',()=>watch(reg.installing));
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)reg.update().catch(()=>{})});
+  }).catch(()=>{});
+});
 
 /* ---------- one-time import from E-Rank Quest (v1) ---------- */
 (function importV1(){

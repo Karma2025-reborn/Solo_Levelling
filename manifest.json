@@ -1,18 +1,19 @@
 {
-  "name": "Hunter System",
-  "short_name": "Hunter",
-  "description": "E to S rank transformation: 72-week plan, exercise guide, workout log, meals, water and reminders.",
+  "name": "ARETE · Level up in real life",
+  "short_name": "ARETE",
+  "description": "ARETE: level up in real life. E to S rank training plan, exercise guide, workout log, meals, water and reminders. Works offline; your data stays on your phone.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#060A13",
-  "theme_color": "#060A13",
+  "background_color": "#0a0c14",
+  "theme_color": "#0a0c14",
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ],
   "shortcuts": [
     { "name": "Rest timer", "url": "./?view=timer", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }

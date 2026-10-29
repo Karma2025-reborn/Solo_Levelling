@@ -1,4 +1,4 @@
-/* Hunter System — animated exercise figures (pose A ↔ pose B). Add a figure by giving a and b joint positions. */
+/* ARETE — animated exercise figures (pose A ↔ pose B). Add a figure by giving a and b joint positions. */
 (function(){
 const NS='http://www.w3.org/2000/svg';
 const L=(a,b,c)=>`<polyline points="${a[0]},${a[1]} ${b[0]},${b[1]}${c?` ${c[0]},${c[1]}`:''}"/>`;

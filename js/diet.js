@@ -1,4 +1,4 @@
-/* Hunter System — meals, daily timeline and diet rules.
+/* ARETE — meals, daily timeline and diet rules.
    Variants are [pure veg, veg + egg, non-veg]. */
 (function(){
 const V=(a,b,c)=>[a,b??a,c??b??a];

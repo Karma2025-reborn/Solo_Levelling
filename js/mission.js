@@ -1,4 +1,4 @@
-/* Hunter System — the ONE Mission: Futurnyx → your own company by 38.
+/* ARETE — the ONE Mission: Futurnyx → your own company by 38.
    Built for 8 hours a week: 5 weekday Money hours (8:45–9:45 pm) + a 3-hour Sunday block.
    Each step: [title, why, how (array), time estimate]. Do them in order. One at a time. */
 (function(){

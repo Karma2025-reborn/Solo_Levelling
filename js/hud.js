@@ -1,4 +1,4 @@
-/* Hunter System v7 · HUD layer
+/* ARETE v7 · HUD layer
    - Mana-particle background (canvas, ~30 fps, pauses when hidden, off for reduced motion)
    - Mentors: four original characters with sigils and lines that change with your day
    - Progress ring + level-up overlay helpers

@@ -1,4 +1,4 @@
-/* Hunter System — food database (approximate values per serving, home-style Indian cooking).
+/* ARETE — food database (approximate values per serving, home-style Indian cooking).
    Row: key, name, serving, grams per serving (0 if not weighable), kcal, protein g, carbs g, fat g, fibre g, aliases ("|"-separated), tag.
    tag: fried · sugar · protein · drink · alcohol · sweet. Values are estimates from IFCT / USDA-style averages. Restaurant food is usually 20–50% higher. */
 (function(){

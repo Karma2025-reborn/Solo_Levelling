@@ -1,4 +1,4 @@
-/* Hunter System — exercise library.
+/* ARETE — exercise library.
    Each entry: n name · m muscles · eq equipment · fig animation key · steps how to do it ·
    x common mistakes · b breathing · alt easier/harder option. */
 window.EX = {

@@ -1,4 +1,4 @@
-/* Hunter System — MIND (INT) system data: ranks, library, skill tracks, 52-week money curriculum. */
+/* ARETE — MIND (INT) system data: ranks, library, skill tracks, 52-week money curriculum. */
 (function(){
 /* Rank-up requirements are cumulative totals. */
 const RANKS=[
